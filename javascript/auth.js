@@ -276,21 +276,25 @@ function showUserInfo() {
     const userBadge = document.getElementById('userBadge');
     if (!userBadge || !currentUser) return;
 
-    // имя пользователя
+    // SVG іконка профілю
+    const icon = document.createElement('div');
+    icon.className = 'user-avatar';
+    icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+
+    // Ім'я користувача
     const name = document.createElement('span');
     name.className = 'user-name';
-    name.textContent = `👤 ${currentUser.name}`;
+    name.textContent = currentUser.name; // Без емодзі!
 
-    // кнопка выхода
+    // Кнопка виходу
     const btn = document.createElement('button');
     btn.className = 'logout-btn';
     btn.type = 'button';
-    btn.textContent = 'Вийти';
+    btn.innerHTML = `Вийти`;
     btn.addEventListener('click', logout);
 
-    userBadge.replaceChildren(name, btn);
+    userBadge.replaceChildren(icon, name, btn);
 
-    // синхронизируем имя и роль в боковой панели
     if (typeof updateDrawerUser === 'function') {
         updateDrawerUser();
     }

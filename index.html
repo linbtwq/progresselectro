@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0066ff">
     <title>Прогрес Електро</title>
-    <link rel="icon" href="data:,">
+    <link rel="icon" type="image/jpeg" href="images.jpg">
+    <link rel="apple-touch-icon" href="images.jpg">
 
     <script>
     (function () {
@@ -53,12 +54,19 @@
     <div id="userBadge" class="user-badge"></div>
 
     <div id="authOverlay" class="auth-overlay">
-        <div class="auth-box">
+                <div class="auth-box">
+            <div class="auth-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+            </div>
             <h2>Прогрес Електро</h2>
             <p>Введіть ваш ПІН-код для початку роботи</p>
+            
             <input type="password" id="pinInput" class="pin-input" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
             <div id="authError" class="auth-error" style="display: none;">Невірний ПІН-код</div>
-            <button class="action-btn" onclick="login()" style="width: 100%; padding: 12px; font-size: 1.1rem;">Увійти</button>
+            
+            <button class="action-btn" onclick="login()">Увійти</button>
         </div>
     </div>
 
@@ -96,11 +104,23 @@
                     </svg>
                 </button>
             </div>
-
-            <div class="search-hint" id="searchHint">Введіть код, назву або відскануйте штрихкод</div>
         </div>
 
         <div id="ptrSpinner" class="ptr-spinner">⟳</div>
+
+        <!-- екран привітання (показується, коли немає пошуку) -->
+        <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <line x1="11" y1="8" x2="11" y2="14"></line>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+            </div>
+            <h2>Пошук товарів</h2>
+            <p>Введіть назву, код або скористайтеся сканером штрихкодів</p>
+        </div>
 
         <div class="results-container" id="resultsContainer"></div>
     </div>

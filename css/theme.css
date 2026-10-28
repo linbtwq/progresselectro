@@ -144,7 +144,14 @@ body, body.dark-theme {
     flex-wrap: wrap;
     gap: 20px;
     align-items: flex-start;
-    flex: 1;
+    margin-bottom: 16px; 
+}
+
+.goods-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: auto; 
 }
 .goods-field {
     display: flex;

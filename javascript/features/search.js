@@ -59,6 +59,8 @@ async function runGoodsSearch(query) {
 
     const searchContainer = document.getElementById('searchContainer');
     const resultsContainer = document.getElementById('resultsContainer');
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    
     if (!searchContainer || !resultsContainer) return;
 
     if (!query) {
@@ -66,9 +68,11 @@ async function runGoodsSearch(query) {
         searchContainer.classList.add('center');
         resultsContainer.classList.remove('active');
         resultsContainer.innerHTML = '';
+        if (welcomeScreen) welcomeScreen.classList.remove('hidden');
         return;
     }
 
+    if (welcomeScreen) welcomeScreen.classList.add('hidden');
     searchContainer.classList.remove('center');
     searchContainer.classList.add('top');
     resultsContainer.classList.add('active');
