@@ -52,8 +52,9 @@ const ASSETS = [
     './javascript/app/submit.js', './javascript/app/clearCache.js',
     './javascript/app/events.js', './javascript/app/refresh.js',
     './javascript/app/reset.js', './javascript/app/init.js',
-    './javascript/scanner.js', './javascript/zbar-wasm.js',
+    './javascript/scanner.js','./javascript/zbar.wasm', './javascript/zbar-wasm.js',
     './javascript/barcode-polyfill.js', './javascript/optimize.js'
+    
 ];
 
 // ============================================================

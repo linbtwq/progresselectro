@@ -33,6 +33,9 @@ let statusTimer = null
 let _lastStatusKey = ''
 let autoRefreshTimer = null
 
+// интервал автообновления (раз в минуту)
+const AUTO_REFRESH_INTERVAL = 60 * 1000;
+
 window.addEventListener('unhandledrejection', (e) => {
     console.warn('[unhandled]', e.reason)
 })

@@ -1,19 +1,58 @@
-@media (max-width: 480px) {
-    :root {
-        --mobile-search-top: max(70px, calc(env(safe-area-inset-top) + 58px));
+/* =========================================
+   МОБИЛЬНАЯ АДАПТАЦИЯ (до 899px)
+   ========================================= */
+@media (max-width: 899px) {
+    /* Кнопки 123 и Сканер показываем */
+    .scan-row {
+        display: flex; 
     }
-    body { align-items: stretch; padding-top: env(safe-area-inset-top); }
-    .app-wrapper { padding: 12px; padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
-    .search-container, .results-container { left: 12px; width: calc(100% - 24px); }
-    .theme-toggle { top: max(8px, env(safe-area-inset-top)); right: 12px; width: 44px; height: 44px; }
-    .cache-toggle { top: max(8px, env(safe-area-inset-top)); right: 64px; width: 44px; height: 44px; }
-    /* Кнопка А */
-    #fontScaleBtn { top: max(8px, env(safe-area-inset-top)) !important; right: 116px !important; width: 44px; height: 44px; }
 
-    .search-container.top { top: var(--mobile-search-top); }
-    .search-container.top .search-hint { display: none; }
-    .search-box { min-height: 54px; padding: 14px 16px; border-radius: 16px; }
-    .results-container { top: calc(var(--mobile-search-top) + 115px); bottom: calc(88px + env(safe-area-inset-bottom)); }
-    .results-container.active { display: block; }
-    .goods-actions { grid-template-columns: 1fr; }
+    /* Переопределяем позиционирование, чтобы ничего не наезжало */
+    .welcome-screen {
+        top: 30%; /* Чуть выше */
+    }
+
+    .search-container.center {
+        top: 50%;
+    }
+
+    /* Когда начинается поиск, поиск прилипает к верху */
+    .search-container.top {
+        top: max(20px, env(safe-area-inset-top));
+    }
+
+    /* Контейнер результатов опускаем ниже поиска */
+    .results-container {
+        top: 140px; 
+        bottom: env(safe-area-inset-bottom);
+        padding-bottom: 20px;
+    }
+
+    /* Карточки в один столбец */
+    .results-container.active {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 0 4px;
+    }
+
+    /* Поле ввода не должно зумить экран на iPhone (font-size >= 16px) */
+    .search-box input {
+        font-size: 16px; 
+    }
+
+    /* Кнопки на карточке делаем повыше для пальцев */
+    .goods-actions .action-btn {
+        min-height: 48px;
+    }
+}
+
+/* =========================================
+   ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (до 380px)
+   ========================================= */
+@media (max-width: 380px) {
+    .welcome-screen h2 { font-size: 1.2rem; }
+    .welcome-screen p { font-size: 0.85rem; }
+    .search-box { padding: 12px 16px; }
+    .goods-actions { grid-template-columns: 1fr; } /* Кнопки друг под другом */
 }
