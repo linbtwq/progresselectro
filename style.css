@@ -1,0 +1,192 @@
+@import url('./css/modals.css');
+@import url('./css/ui.css');
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    color: var(--text);
+    height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+.app-wrapper {
+    width: 100%;
+    max-width: 1200px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    padding: 22px 18px 18px;
+}
+
+/* =========================================
+   ПОИСК
+   ========================================= */
+.search-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: absolute;
+    transition: top 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 10;
+}
+
+.search-container.center {
+    top: 42%;
+    transform: translateY(-50%);
+}
+
+.search-container.top {
+    top: 40px;
+    transform: translateY(0);
+}
+
+.search-box {
+    width: 100%;
+    max-width: 760px;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0, 102, 255, 0.08);
+    transition: all 0.2s ease;
+}
+.search-box:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 8px 30px var(--primary-soft); /* будет красная тень */
+}
+
+.search-box input {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-size: 1.1rem;
+    background: transparent;
+    color: var(--text-heading);
+    font-weight: 500;
+}
+
+.search-icon {
+    display: grid;
+    place-items: center;
+    margin-right: 12px;
+    color: var(--primary);
+}
+.search-icon .ui-icon { width: 24px; height: 24px; }
+
+/* Кнопка очистки */
+.search-clear {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.search-clear[hidden] { display: none; }
+.search-clear:active { transform: scale(0.88); background: var(--surface-3); }
+
+/* Блок кнопок 123 и Сканер */
+.scan-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    background: var(--surface);
+    padding: 6px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--border);
+}
+
+.scan-toggle, .scan-btn {
+    border: none;
+    background: transparent;
+    min-height: 44px;
+    min-width: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.scan-toggle {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--text-heading);
+    letter-spacing: -0.02em;
+}
+.scan-toggle.active {
+    background: var(--primary);
+    color: #fff;
+}
+
+.scan-btn {
+    color: var(--text-muted);
+    font-size: 1.2rem;
+}
+.scan-btn:hover { color: var(--primary); background: var(--primary-soft); }
+.scan-btn svg { width: 22px; height: 22px; }
+
+.search-hint {
+    margin-top: 14px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    transition: opacity 0.3s ease;
+}
+.search-container.top .search-hint {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* =========================================
+   РЕЗУЛЬТАТЫ
+   ========================================= */
+.results-container {
+    width: 100%;
+    position: absolute;
+    top: 170px;
+    bottom: 20px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    opacity: 0;
+    pointer-events: none;
+    padding-bottom: 40px;
+    scrollbar-width: none;
+    z-index: 1;
+}
+.results-container::-webkit-scrollbar { display: none; }
+.results-container.active { opacity: 1; pointer-events: auto; }
+
+@media (min-width: 768px) {
+    .search-container.top { top: 60px; }
+    .results-container { top: 210px; }
+    
+    .results-container.active { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); 
+        gap: 20px; 
+        align-content: start;
+    }
+}

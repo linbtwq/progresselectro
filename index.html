@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0066ff">
+    <title>Прогрес Електро</title>
+    <link rel="icon" href="data:,">
+
+    <script>
+    (function () {
+        try {
+            var cores = navigator.hardwareConcurrency || 4;
+            var mem = navigator.deviceMemory || 4;
+            var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var touch = window.matchMedia('(pointer: coarse)').matches;
+            var fine = window.matchMedia('(pointer: fine)').matches;
+            var w = window.innerWidth;
+            var c = document.documentElement.classList;
+
+            if (reduce || cores <= 2 || mem <= 2) c.add('low-end');
+            else if (cores <= 4) c.add('mid-end');
+
+            if (!reduce && cores > 4 && mem > 4) c.add('is-high');
+            if (touch) c.add('is-touch');
+            if (fine && !touch && w >= 900) c.add('is-desktop');
+            if (w >= 900) c.add('is-wide');
+            if (w >= 1400) c.add('is-2xl');
+            if ((window.devicePixelRatio || 1) >= 1.5) c.add('is-retina');
+        } catch (e) {}
+    })();
+    </script>
+
+    <script>
+    (function () {
+        try {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.documentElement.classList.add('dark-theme-boot');
+            }
+            var savedFont = localStorage.getItem('fontScale');
+            if (savedFont) document.documentElement.style.fontSize = savedFont;
+        } catch (e) {}
+    })();
+    </script>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div id="topProgress" class="top-progress"></div>
+    <div id="userBadge" class="user-badge"></div>
+
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-box">
+            <h2>Прогрес Електро</h2>
+            <p>Введіть ваш ПІН-код для початку роботи</p>
+            <input type="password" id="pinInput" class="pin-input" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+            <div id="authError" class="auth-error" style="display: none;">Невірний ПІН-код</div>
+            <button class="action-btn" onclick="login()" style="width: 100%; padding: 12px; font-size: 1.1rem;">Увійти</button>
+        </div>
+    </div>
+
+    <!-- кнопки шапки -->
+    <button id="themeToggle" class="theme-toggle" aria-label="Увімкнути темну тему">
+        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+    </button>
+    <button id="clearCacheBtn" class="cache-toggle" title="Очистити кеш" aria-label="Очистити кеш">
+        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg>
+    </button>
+    <button id="fontScaleBtn" class="theme-toggle" title="Змінити розмір шрифту" aria-label="Змінити розмір шрифту" style="right: 124px; font-weight: 800; font-size: 15px;">A</button>
+
+    <div class="app-wrapper" id="appWrapper">
+        <!-- пошук товару -->
+        <div class="search-container center" id="searchContainer">
+            <div class="search-box">
+                <span class="search-icon">
+                    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
+                </span>
+                <input type="text" id="goodsSearch" placeholder="Введіть код, назву або штрихкод..." autocomplete="off">
+                <button type="button" class="search-clear" id="searchClear" aria-label="Очистити" hidden>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="scan-row">
+                <button type="button" class="scan-toggle" id="numericToggle" aria-label="Цифрова клавіатура" aria-pressed="false" title="Цифрова клавіатура">123</button>
+                <button type="button" class="scan-btn" id="scanBtn" aria-label="Сканувати штрихкод">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+                        <line x1="7" y1="12" x2="7" y2="12.01"/>
+                        <line x1="10" y1="9" x2="10" y2="15"/>
+                        <line x1="14" y1="9" x2="14" y2="15"/>
+                        <line x1="17" y1="12" x2="17" y2="12.01"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="search-hint" id="searchHint">Введіть код, назву або відскануйте штрихкод</div>
+        </div>
+
+        <div id="ptrSpinner" class="ptr-spinner">⟳</div>
+
+        <div class="results-container" id="resultsContainer"></div>
+    </div>
+
+    <button id="backToTop" class="back-to-top" aria-label="Вгору">
+        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>
+    </button>
+
+    <div class="modal-overlay" id="confirmDialogOverlay" style="z-index: 1500;">
+        <div class="modal-box confirm-box">
+            <div class="modal-header"><h3 id="confirmDialogTitle">Підтвердіть дію</h3></div>
+            <div class="modal-body">
+                <p id="confirmDialogMessage" style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.45;"></p>
+                <div id="confirmDialogDetails" class="confirm-dialog-details"></div>
+            </div>
+            <div class="modal-footer" style="justify-content: space-between;">
+                <button class="action-btn btn-secondary" type="button" id="confirmDialogCancel">Скасувати</button>
+                <button class="action-btn btn-danger" type="button" id="confirmDialogOk">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"><span id="toastMessage">Успішно!</span></div>
+
+    <div id="connectionStatus" class="connection-status" title="Натисніть для оновлення">
+        <div class="status-dot"></div>
+        <div class="status-content">
+            <span class="status-text">Перевірка зв'язку...</span>
+            <span class="status-time" id="statusTime"></span>
+        </div>
+        <span class="refresh-icon">⟳</span>
+    </div>
+
+    <div id="appVersion" class="app-version"></div>
+
+    <!-- порядок: version → config → auth → core → ui → features → app → поліфіл сканера -->
+    <script src="version.js"></script>
+    <script src="javascript/config.js"></script>
+    <script src="javascript/auth.js"></script>
+
+    <script src="javascript/core/utils.js"></script>
+    <script src="javascript/core/storage.js"></script>
+    <script src="javascript/core/api.js"></script>
+    <script src="javascript/core/queue.js"></script>
+    <script src="javascript/core/locks.js"></script>
+    <script src="javascript/core/state.js"></script>
+
+    <script src="javascript/ui/icons.js"></script>
+    <script src="javascript/ui/rows.js"></script>
+    <script src="javascript/ui/toast.js"></script>
+    <script src="javascript/ui/status.js"></script>
+    <script src="javascript/ui/focus.js"></script>
+    <script src="javascript/ui/dialog.js"></script>
+    <script src="javascript/ui/theme.js"></script>
+    <script src="javascript/ui/backToTop.js"></script>
+    <script src="javascript/ui/modalDrag.js"></script>
+
+    <script src="javascript/features/search.js"></script>
+    <script src="javascript/features/goods-card.js"></script>
+
+    <script src="javascript/app/load.js"></script>
+    <script src="javascript/app/sync.js"></script>
+    <script src="javascript/app/submit.js"></script>
+    <script src="javascript/app/clearCache.js"></script>
+    <script src="javascript/app/events.js"></script>
+    <script src="javascript/app/refresh.js"></script>
+    <script src="javascript/app/reset.js"></script>
+    <script src="javascript/app/init.js"></script>
+
+    <!-- поліфіл BarcodeDetector (Safari, Firefox, iPhone) -->
+    <script src="javascript/zbar-wasm.js"></script>
+    <script src="javascript/barcode-polyfill.js"></script>
+    <script>
+        try {
+            window['BarcodeDetector'].getSupportedFormats();
+        } catch (e) {
+            window['BarcodeDetector'] = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+        }
+    </script>
+
+    <script src="javascript/scanner.js"></script>
+    <script src="javascript/optimize.js"></script>
+
+    <script>
+    (function () {
+        try {
+            if (typeof APP_VERSION === 'undefined') return;
+            const seen = localStorage.getItem('__lastSeenVersion');
+            if (seen !== APP_VERSION) {
+                localStorage.setItem('__lastSeenVersion', APP_VERSION);
+                console.info('%c[app] версия ' + APP_VERSION, 'color:#0066ff;font-weight:bold');
+            }
+        } catch (e) {}
+    })();
+    </script>
+</body>
+</html>

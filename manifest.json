@@ -1,0 +1,16 @@
+{
+  "name": "Прогрес Електро",
+  "short_name": "Прогрес",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#eef4ff",
+  "theme_color": "#0066ff",
+  "icons": [
+    {
+      "src": "image.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
