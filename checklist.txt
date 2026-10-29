@@ -1,0 +1,115 @@
+
+этот файл содержит описание архитектуры, список исправленных багов и инструкции по дальнейшему расширению функционала.
+что было починено (критические фиксы)
+в ходе рефакторинга были устранены «висячие» зависимости, оставшиеся от старого проекта.
+
+index.html:
+добавлена кнопка #backtotop (возврат наверх).
+добавлен блок #confirmdialogoverlay (универсальное окно подтверждения). без него не работала очистка кеша.
+исправлена иконка в head (было image.jpg, стало images.jpg).
+
+javascript/app/events.js:
+удалены дубликаты функций schedulestatusloop и handleonlinestatus.
+добавлена инициализация клавиатуры: document.addeventlistener('keydown', onkeydown) (теперь работают горячие клавиши).
+добавлена инициализация свайпов: initmodaldrag().
+
+javascript/ui/focus.js и auth.js:
+исправлен id поля поиска. было searchinput (от старого проекта), стало goodssearch. теперь esc, / и ctrl+k работают.
+
+javascript/app/reset.js:
+исправлена ошибка referenceerror. переменная searchtimer заменена на _searchtimer (как в search.js).
+удалены несуществующие переменные isattop и renderframe.
+
+javascript/app/submit.js и sync.js:
+исправлен вызов несуществующей функции. loaddata() заменена на loadgoodsdata() (чтобы данные обновлялись после отправки).
+
+javascript/app/init.js:
+вызов startapp() перенесен сюда. теперь приложение стартует после того, как все обработчики кнопок и свайпов повешены.
+
+javascript/features/goods-card.js:
+удалены дубликаты функций handlegoodscardclick и findgoodsid.
+
+css/ui.css и modals.css:
+добавлены стили для #backtotop.
+добавлен стиль .btn-success для кнопок подтверждения.
+
+конфигурация (sw.js, manifest.json, version.js):
+кеш sw переименован в progres-electro-v... (чтобы старый кеш не мешал).
+версия поднята до 0.0.4.
+в manifest.json поправлены цвета бренда (#e3181d) и путь к иконке.
+
+======================
+
+примеры на будущее (как расширять)
+
+как использовать диалог подтверждения (showconfirmdialog)
+функция возвращает promise (true/false). она уже стилизована и подключена.
+пример: спросить подтверждение перед удалением товара.
+
+async function askdelete(itemname) {
+const ok = await showconfirmdialog({
+title: 'удалить товар?',
+message: вы уверены, что хотите удалить "${itemname}"?,
+details: ['это действие нельзя отменить', 'товар исчезнет из списка'],
+oktext: 'удалить',
+canceltext: 'отмена',
+danger: true // кнопка ok станет красной
+});
+
+if (ok) {
+showtoast('товар удален');
+// ... логика удаления
+}
+}
+
+как добавить новую модалку (например, карточку товара)
+шаги для добавления нового окна:
+
+html: добавить разметку в index.html перед #toast.
+js (focus.js): добавить id в функцию closetopmodal(), чтобы esc закрывал её.
+js (modaldrag.js): добавить id в функцию closemodalbyoverlay(), чтобы свайп работал.
+как реализовать кнопки в карточке товара
+в файле javascript/features/goods-card.js есть заглушки action1 и action2. их нужно заменить на логику.
+пример (добавление в заказ):
+
+if (action === 'action1') {
+// вместо тоста вызываем логику заказа
+addtoorder(item.id, item.name);
+showtoast(добавлено: ${item.name});
+}
+(не забыть создать функцию addtoorder или использовать appstore из store.js, который лежит в проекте).
+
+как использовать submitdocument для отправки на сервер
+если нужно отправить данные (например, закрыть смену или отправить заказ), используется готовая функция submitdocument.
+пример:
+
+async function sendmyorder(orderdata) {
+const btn = document.getelementbyid('sendorderbtn');
+
+await submitdocument({
+endpoint: 'orders', // путь на сервере 1с
+payload: orderdata,
+btn: btn,
+successtext: 'заказ успешно отправлен!',
+onsuccess: () => {
+closetopmodal(); // закрываем модалку после успеха
+}
+});
+}
+
+текущее состояние и что делать дальше
+api (бэкенд): сейчас в config.js стоит адрес от старого проекта (api.coffeemeters.pp.ua). когда будет готов сервер для прогреса — поменять url там.
+сканер штрихкодов: работает из коробки. при сканировании отправляет код в searchgoodsbybarcode().
+офлайн-режим: service worker кеширует страницу. если пропадет интернет, приложение откроется, но данные будут только те, что успели загрузиться в indexeddb.
+очередь (queue.js): сейчас она пустая. когда появится логика отправки заказов или списаний, использовать функцию saveoffline(payload), если интернета нет. она сама отправит данные, когда сеть появится.
+
+структура проекта (карта файлов)
+index.html — главный экран.
+sw.js — service worker (офлайн кеш).
+css/ — стили (темы, модалки, интерфейс).
+javascript/config.js — настройки api.
+javascript/auth.js — вход по пин-коду.
+javascript/core/ — ядро (api, бд, утилиты, стейт).
+javascript/features/ — логика товаров (поиск, карточка).
+javascript/ui/ — интерфейс (кнопки, фокус, темы, анимации).
+javascript/app/ — сборка приложения (события, инициализация, синк).
