@@ -1,36 +1,59 @@
+// ============================================================
+// javascript/features/goods-card.js
+//
+// назначение
+// карточка товара для списка результатов поиска.
+//
+// ответственность
+// - html карточки товара с ценой, кодом, штрихкодом и остатком
+// - обработчик кликов по кнопкам действий
+// - поиск товара по id (для обработчика кнопок)
+//
+// про действия
+// кнопки "дія 1" и "дія 2" - заглушки.
+// когда появится логика (добавить в заказ, открыть карточку, показать остатки по точкам),
+// заменить обработчики в handleGoodsCardClick на реальные вызовы.
+//
+// зависимости
+// - core/utils.js дает escapeHtml и fmt
+// - core/state.js дает goodsData, goodsByCode, goodsIndexBuilt
+// ============================================================
+
+// ============================================================
+// блок 1. html карточки
+//
+// item - нормализованный товар из load.js
+// idx - порядковый номер, для анимации появления
+// ============================================================
+
 function goodsCardHtml(item, idx) {
-    const code = escapeHtml(item.code || '—');
+    const code = escapeHtml(item.code || '');
     const name = escapeHtml(item.name || '—');
     const price = Number(item.price) || 0;
     const stock = item.stock != null ? Number(item.stock) : null;
     const barcode = String(item.barcode || '').trim();
     const id = escapeHtml(item.id || item.code || '');
 
-    const stockClass = stock == null ? '' : (stock > 0 ? 'stock-ok' : 'stock-zero');
-    const stockText = stock == null ? '—' : fmt(stock);
+    let stockHtml = '';
+    if (stock !== null) {
+        const isOk = stock > 0;
+        stockHtml = `<div class="goods-stock ${isOk ? 'ok' : 'zero'}">${isOk ? 'Є: ' : 'Немає: '}${fmt(stock)}</div>`;
+    }
 
     return `
         <div class="goods-card" style="--i:${idx}" data-rendered="1" data-id="${id}" data-code="${code}">
             <div class="goods-head">
                 <div class="goods-title">${name}</div>
-                <span class="goods-code">${code}</span>
+                <div class="goods-price-block">
+                    <span class="price-label">Ціна</span>
+                    <span class="price-val">${fmt(price)} ₴</span>
+                </div>
             </div>
 
             <div class="goods-meta">
-                <div class="goods-field">
-                    <label>Ціна</label>
-                    <span class="price">${fmt(price)} ₴</span>
-                </div>
-                <div class="goods-field">
-                    <label>Залишок</label>
-                    <span class="${stockClass}">${stockText}</span>
-                </div>
-                ${barcode ? `
-                    <div class="goods-field">
-                        <label>Штрихкод</label>
-                        <span class="barcode">${escapeHtml(barcode)}</span>
-                    </div>
-                ` : ''}
+                ${code ? `<span class="goods-code">${code}</span>` : ''}
+                ${barcode ? `<span class="goods-barcode">${escapeHtml(barcode)}</span>` : ''}
+                ${stockHtml}
             </div>
 
             <div class="goods-actions">
@@ -41,6 +64,14 @@ function goodsCardHtml(item, idx) {
     `;
 }
 
+// ============================================================
+// блок 2. обработчик кликов по карточке
+//
+// делегирование: ловим клики по кнопкам с data-action
+// пока действия - заглушки с тостом,
+// заменить на реальные вызовы когда появится логика
+// ============================================================
+
 function handleGoodsCardClick(event) {
     const btn = event.target.closest('[data-action]');
     if (!btn) return;
@@ -50,13 +81,22 @@ function handleGoodsCardClick(event) {
     if (!item) return;
 
     if (action === 'action1') {
+        // TODO: заменить на реальную логику
+        // например: добавить в заказ, показать остатки по точкам
         showToast(`Дія 1: ${item.name || id}`);
-        // TODO: тут будет логика
     } else if (action === 'action2') {
+        // TODO: заменить на реальную логику
+        // например: открыть карточку товара, списать
         showToast(`Дія 2: ${item.name || id}`);
-        // TODO: тут будет логика
     }
 }
+
+// ============================================================
+// блок 3. поиск товара по id
+//
+// сначала пробуем через индекс (быстро),
+// если там нет - линейный поиск по массиву (медленно, но на всякий случай)
+// ============================================================
 
 function findGoodsById(id) {
     if (!id) return null;

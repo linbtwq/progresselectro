@@ -1,13 +1,17 @@
 {
   "name": "Прогрес Електро",
   "short_name": "Прогрес",
+  "description": "Довідник товарів з пошуком за назвою, кодом та штрихкодом",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#eef4ff",
-  "theme_color": "#0066ff",
+  "orientation": "any",
+  "lang": "uk",
+  "background_color": "#FAFAFA",
+  "theme_color": "#E3181D",
   "icons": [
     {
-      "src": "image.jpg",
+      "src": "images.jpg",
       "sizes": "192x192 512x512",
       "type": "image/jpeg",
       "purpose": "any"

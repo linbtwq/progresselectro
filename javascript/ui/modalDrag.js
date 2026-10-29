@@ -11,12 +11,9 @@
 // - закрыть модалку если потянули достаточно далеко или быстро
 //
 // зависимости
-// - features/meter.js дает closeModal, closeConfirmModal
-// - features/payment.js дает closePaymentModal
-// - features/stock.js дает closeStockModal
-// - notes.js дает closeNoteModal
+// - core/state.js не нужен
+// - init вызывается из events.js
 // ============================================================
-
 
 // ============================================================
 // блок 1. состояние жеста
@@ -32,38 +29,43 @@ const _modalDrag = {
     velocity: 0
 }
 
-
 // ============================================================
 // блок 2. универсальное закрытие по оверлею
 //
 // подбираем правильную функцию закрытия по id модалки
+// для confirmDialogOverlay жмем отмену,
+// чтобы promise зарезолвился и cleanup сработал
 // ============================================================
 
 function closeModalByOverlay(overlay) {
     if (!overlay) return
     const id = overlay.id
 
-    if (id === 'modalOverlay') closeModal()
-    else if (id === 'confirmOverlay') closeConfirmModal()
-    else if (id === 'paymentOverlay') closePaymentModal()
-    else if (id === 'assortOverlay' && typeof closeAssortModal === 'function') closeAssortModal()
-    else if (id === 'orderConfirmOverlay' && typeof closeOrderConfirmModal === 'function') closeOrderConfirmModal()
+    if (id === 'confirmDialogOverlay') {
+        const cancelBtn = overlay.querySelector('#confirmDialogCancel')
+        if (cancelBtn) { cancelBtn.click(); return }
+    }
+
+    if (id === 'modalOverlay' && typeof closeModal === 'function') closeModal()
     else if (id === 'stockOverlay' && typeof closeStockModal === 'function') closeStockModal()
     else if (id === 'shipmentOverlay' && typeof closeShipmentModal === 'function') closeShipmentModal()
     else if (id === 'recountOverlay' && typeof closeRecountModal === 'function') closeRecountModal()
     else if (id === 'noteOverlay' && typeof closeNoteModal === 'function') closeNoteModal()
+    else if (id === 'assortOverlay' && typeof closeAssortModal === 'function') closeAssortModal()
+    else if (id === 'orderConfirmOverlay' && typeof closeOrderConfirmModal === 'function') closeOrderConfirmModal()
+    else if (id === 'paymentOverlay' && typeof closePaymentModal === 'function') closePaymentModal()
     else overlay.classList.remove('active')
 }
-
 
 // ============================================================
 // блок 3. инициализация жеста
 //
-// жесты работают только на тач устройствах
-// если устройство с мышью выходим сразу
+// жесты работают только на тач устройствах.
+// если устройство с мышью выходим сразу.
 //
-// реагируем только на касание в верхних семидесяти пикселях модалки
-// крестик и кнопки формы не перехватываем
+// реагируем только на касание в верхних семидесяти пикселях модалки.
+// крестик и кнопки формы не перехватываем.
+// маленький диалог подтверждения свайпом не закрываем.
 // ============================================================
 
 function initModalDrag() {
@@ -78,13 +80,20 @@ function initModalDrag() {
         // крестик не трогаем, он сам закроет
         if (e.target.closest('.modal-close')) return
 
+        const overlay = box.closest('.modal-overlay')
+        if (!overlay) return
+
+        // confirmDialogOverlay свайпом не закрываем
+        // он маленький и это опасно - пользователь может случайно отменить
+        if (overlay.id === 'confirmDialogOverlay') return
+
         // реагируем только на касание в верхней части модалки
         const rect = box.getBoundingClientRect()
         const y = e.touches[0].clientY
         if (y > rect.top + 70) return
 
         _modalDrag.box = box
-        _modalDrag.overlay = box.closest('.modal-overlay')
+        _modalDrag.overlay = overlay
         _modalDrag.startY = y
         _modalDrag.lastY = y
         _modalDrag.lastTime = Date.now()

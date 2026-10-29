@@ -10,7 +10,7 @@
 // - обрабатывать запросы отдавая сначала сеть, потом кеш
 //
 // что кешируется
-// только статические ресурсы. html, css, js, манифест.
+// только статические ресурсы: html, css, js, манифест.
 // запросы к сервису 1с намеренно не кешируются.
 //
 // как менять версию кеша
@@ -27,12 +27,17 @@
 importScripts('./version.js');
 
 // имя текущего кеша
-// привязано к версии приложения из version.js
-const CACHE_NAME = `coffee-meters-v${APP_VERSION}`;
+// префикс сменили при переименовании проекта,
+// чтобы у старых пользователей не прилип кеш от другого приложения
+// с тем же origin
+const CACHE_NAME = `progres-electro-v${APP_VERSION}`;
 
 // список ресурсов для офлайн режима
-// css файлы тоже нужны потому что style.css подтягивает их через import
+// css файлы тоже нужны потому что style.css подтягивает их через @import
 // порядок не важен, но все файлы проекта должны быть здесь
+//
+// store.js убран из списка: он не подключён в index.html
+// и пока не используется, вернётся когда появится логика заказа
 const ASSETS = [
     './', './index.html', './style.css',
     './css/modals.css', './css/ui.css', './css/mobile.css', './css/theme.css',
@@ -41,7 +46,6 @@ const ASSETS = [
     './javascript/core/utils.js', './javascript/core/storage.js',
     './javascript/core/api.js', './javascript/core/queue.js',
     './javascript/core/locks.js', './javascript/core/state.js',
-    './javascript/core/store.js',
     './javascript/ui/icons.js', './javascript/ui/rows.js',
     './javascript/ui/toast.js', './javascript/ui/status.js',
     './javascript/ui/focus.js', './javascript/ui/dialog.js',
@@ -52,9 +56,8 @@ const ASSETS = [
     './javascript/app/submit.js', './javascript/app/clearCache.js',
     './javascript/app/events.js', './javascript/app/refresh.js',
     './javascript/app/reset.js', './javascript/app/init.js',
-    './javascript/scanner.js','./javascript/zbar.wasm', './javascript/zbar-wasm.js',
+    './javascript/scanner.js', './javascript/zbar.wasm', './javascript/zbar-wasm.js',
     './javascript/barcode-polyfill.js', './javascript/optimize.js'
-    
 ];
 
 // ============================================================

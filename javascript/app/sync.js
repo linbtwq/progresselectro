@@ -2,11 +2,14 @@
 // javascript/app/sync.js
 //
 // назначение
-// этот файл отвечает за синхронизацию офлайн-очереди.
+// синхронизация офлайн-очереди с сервером.
+// сейчас очередь всегда пуста, поэтому файл работает вхолостую.
+// это заготовка на будущее - когда появится отправка документов
+// (заказы, списания, показания), сюда будут попадать записи.
 //
 // ответственность
 // - пройти по очереди и попробовать отправить каждую запись
-// - при 409 считать что сервер уже видел эту запись и не создавать дубль
+// - при 409 считать что сервер уже видел запись и не создавать дубль
 // - при серии ошибок перенести запись в список отклоненных
 // - снимать локальные блокировки после успешной отправки
 // - рассчитывать паузу до следующей попытки по экспоненте
@@ -18,19 +21,11 @@
 // - core/state.js дает isSyncing, retryAttempt, retryTimer, lastSyncError
 // - ui/status.js дает setConnectionStatus, renderStatus
 // - ui/toast.js дает showToast
-// - app/load.js дает loadData
+// - app/load.js дает loadGoodsData
 // ============================================================
-
 
 // ============================================================
 // блок 1. прогон очереди
-//
-// если у записи нет request_id, добавляем перед отправкой.
-// это защита от дублей для старых записей.
-//
-// ответ 200 или 409 считается успехом.
-// при сетевой ошибке оставляем запись в очереди и идем дальше.
-// после нескольких попыток запись уходит в список отклоненных.
 // ============================================================
 
 async function runSync({ manual, quiet }) {
@@ -73,7 +68,6 @@ async function runSync({ manual, quiet }) {
                 payload.attempts = (payload.attempts || 0) + 1
                 payload.lastError = serverError
 
-                // слишком много попыток, переносим в failed
                 if (payload.attempts >= MAX_QUEUE_ATTEMPTS) {
                     dropped.push(payload)
                     done.add(payload.request_id)
@@ -103,7 +97,6 @@ async function runSync({ manual, quiet }) {
         .map(p => byId.get(p.request_id) || p)
     saveQueue(rest)
 
-    // снимаем блокировку с точек которых в очереди больше нет
     for (const p of dropped) {
         if (!rest.some(r => String(r.point_id) === String(p.point_id))) unlockPoint(p.point_id)
     }
@@ -112,28 +105,24 @@ async function runSync({ manual, quiet }) {
     lastSyncError = rest.length ? (netFail ? 'немає зв\'язку з 1С' : serverError) : ''
     if (sentCount) retryAttempt = 0
 
-    // показываем пользователю результат
+    // показываем результат
+    // функция называется loadGoodsData, а не loadData
     if (dropped.length) {
         showToast(`1С відхилила записів: ${dropped.length}. Натисніть на статус зв'язку.`, true)
     } else if (sentCount && rest.length === 0) {
         showToast('Усі записи з черги відправлені в 1С.')
-        loadData({ silent: true })
+        loadGoodsData({ silent: true })
     } else if (sentCount) {
         showToast(`Відправлено: ${sentCount}, залишилось: ${rest.length}`, true)
     } else if (rest.length && !quiet) {
         showToast(`Не відправлено: ${rest.length}. ${lastSyncError || 'немає зв\'язку з 1С'}`, true)
     }
 
-    if (sentCount && rest.length === 0 && dropped.length) loadData({ silent: true })
+    if (sentCount && rest.length === 0 && dropped.length) loadGoodsData({ silent: true })
 }
-
 
 // ============================================================
 // блок 2. публичная обертка синхронизации
-//
-// защищает от параллельных запусков.
-// после завершения всегда перерисовывает статус
-// и планирует следующий ретрай
 // ============================================================
 
 async function syncOfflineMeters(opts) {
@@ -154,12 +143,11 @@ async function syncOfflineMeters(opts) {
     }
 }
 
-
 // ============================================================
 // блок 3. планирование повторной попытки
 //
 // экспоненциальная задержка от пяти секунд до syncRetrySeconds.
-// если очередь пуста, таймер не ставим
+// если очередь пуста таймер не ставим.
 // ============================================================
 
 function scheduleSyncRetry() {
@@ -177,12 +165,11 @@ function scheduleSyncRetry() {
     retryTimer = setTimeout(() => syncOfflineMeters({ quiet: true }), delay)
 }
 
-
 // ============================================================
-// блок 4. офлайн-сохранение показаний
+// блок 4. офлайн-сохранение
 //
-// кладет запись в очередь и блокирует точку на показания.
-// блокировка нужна чтобы пользователь случайно не сдал точку дважды
+// кладет запись в очередь и блокирует точку.
+// сейчас не используется, но пригодится когда появится отправка.
 // ============================================================
 
 function saveOffline(payload) {
@@ -190,7 +177,6 @@ function saveOffline(payload) {
     queue.push(payload)
     saveQueue(queue)
 
-    // блокируем точку чтобы случайно не сдать еще раз
     lockPoint(payload.point_id, true)
     invalidateLockSnapshot()
 

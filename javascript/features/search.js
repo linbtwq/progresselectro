@@ -57,25 +57,20 @@ async function runGoodsSearch(query) {
     const seq = ++_searchSeq;
     if (_searchAbort) _searchAbort.abort();
 
-    const searchContainer = document.getElementById('searchContainer');
+    const appWrapper = document.getElementById('appWrapper');
     const resultsContainer = document.getElementById('resultsContainer');
-    const welcomeScreen = document.getElementById('welcomeScreen');
     
-    if (!searchContainer || !resultsContainer) return;
+    if (!appWrapper || !resultsContainer) return;
 
+    // Если поле пустое — возвращаем все на место
     if (!query) {
-        searchContainer.classList.remove('top');
-        searchContainer.classList.add('center');
-        resultsContainer.classList.remove('active');
+        appWrapper.classList.remove('has-results');
         resultsContainer.innerHTML = '';
-        if (welcomeScreen) welcomeScreen.classList.remove('hidden');
         return;
     }
 
-    if (welcomeScreen) welcomeScreen.classList.add('hidden');
-    searchContainer.classList.remove('center');
-    searchContainer.classList.add('top');
-    resultsContainer.classList.add('active');
+    // Включаем компактный режим (прячем иконку)
+    appWrapper.classList.add('has-results');
 
     if (/^\d{8,}$/.test(query)) {
         searchGoodsByBarcode(query);
@@ -106,11 +101,15 @@ async function searchGoodsByBarcode(barcode) {
     if (!clean) return;
 
     const input = document.getElementById('goodsSearch');
+    const appWrapper = document.getElementById('appWrapper');
+    
     if (input) {
         input.value = '';
         const cb = document.getElementById('searchClear');
         if (cb) cb.hidden = true;
     }
+
+    if (appWrapper) appWrapper.classList.add('has-results');
 
     const resultsContainer = document.getElementById('resultsContainer');
     const searchContainer = document.getElementById('searchContainer');

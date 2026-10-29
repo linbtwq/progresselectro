@@ -1,7 +1,4 @@
-/* ============================================================
-   modals.css — вікна підтвердження
-   ============================================================ */
-
+/* фон модального окна */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -11,13 +8,11 @@
     align-items: center;
     padding: 20px;
     background: rgba(10, 18, 32, 0.6);
-    /* За замовчуванням приховано! */
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transition: opacity 0.25s ease, visibility 0s linear 0.25s;
 }
-
 .modal-overlay.active {
     opacity: 1;
     visibility: visible;
@@ -25,6 +20,7 @@
     transition: opacity 0.25s ease, visibility 0s;
 }
 
+/* коробка самого модального окна */
 .modal-box {
     background: var(--surface-solid);
     border-radius: var(--r-lg);
@@ -36,11 +32,11 @@
     transform: translateY(15px);
     transition: transform 0.25s ease;
 }
-
 .modal-overlay.active .modal-box {
     transform: translateY(0);
 }
 
+/* шапка и тело окна */
 .modal-header {
     padding: 18px 20px;
     border-bottom: 1px solid var(--separator);
@@ -48,10 +44,14 @@
     justify-content: space-between;
     align-items: center;
 }
-.modal-header h3 { margin: 0; font-size: 1.1rem; color: var(--text-heading); }
-
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-heading);
+}
 .modal-body { padding: 20px; }
 
+/* подвал окна с кнопками */
 .modal-footer {
     padding: 14px 20px;
     border-top: 1px solid var(--separator);
@@ -60,7 +60,7 @@
     justify-content: flex-end;
 }
 
-/* Стилі для кнопок всередині модалки */
+/* стили кнопок внутри модалки */
 .action-btn {
     padding: 10px 16px;
     border-radius: var(--r-sm);
@@ -72,3 +72,4 @@
 }
 .action-btn.btn-secondary { background: var(--surface-2); color: var(--text-heading); }
 .action-btn.btn-danger { background: var(--danger); color: #fff; }
+.action-btn.btn-success { background: var(--success); color: #fff; }

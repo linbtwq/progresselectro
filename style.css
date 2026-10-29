@@ -1,9 +1,7 @@
 @import url('./css/modals.css');
 @import url('./css/ui.css');
 
-/* =========================================
-   БАЗОВІ НАЛАШТУВАННЯ
-   ========================================= */
+/* базовый сброс отступов и шрифтов */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -12,135 +10,139 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+/* убираем скролл со всей страницы, чтобы не было серых полос */
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg);
+}
+
+/* фон с точками, как в фигме */
 body {
     color: var(--text);
     height: 100dvh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
     -webkit-font-smoothing: antialiased;
-    background-color: var(--bg);
-    
-    /* точковий фон */
-    background-image: radial-gradient(var(--border) 1px, transparent 1px);
-    background-size: 24px 24px;
-    background-position: center center;
+    background-image: radial-gradient(var(--border) 1.5px, transparent 1.5px);
+    background-size: 32px 32px;
 }
 
+/* главная обертка, которая центрирует контент */
 .app-wrapper {
     width: 100%;
     max-width: 1200px;
     height: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    padding: 80px 16px 0 16px; /* сверху отступ под шапку */
+    min-width: 0;
+}
+
+/* верхняя зона где находится приветствие и поиск */
+.top-area {
     display: flex;
     flex-direction: column;
     align-items: center;
-    position: relative;
-    padding: 22px 18px 18px;
+    justify-content: center;
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    transition: all 0.3s ease;
+    padding-bottom: 15vh; /* приподнимаем по центру визуально */
 }
 
-/* =========================================
-   ЕКРАН ПРИВІТАННЯ (Коли пошук порожній)
-   ========================================= */
+/* когда пошел поиск прижимаем верхнюю зону наверх */
+.app-wrapper.has-results .top-area {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    padding-bottom: 16px;
+}
+
+/* экран приветствия с большой иконкой */
 .welcome-screen {
-    position: absolute;
-    top: 35%; /* Трохи вище центру */
-    left: 50%;
-    transform: translate(-50%, -50%);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
+    max-height: 500px;
     opacity: 1;
-    pointer-events: none;
+    overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1;
-    width: 100%;
+    margin-bottom: 24px;
 }
 
-.welcome-screen.hidden {
+/* прячем приветствие при поиске, плавно сжимая его */
+.app-wrapper.has-results .welcome-screen {
+    max-height: 0;
     opacity: 0;
-    transform: translate(-50%, -60%);
+    margin-bottom: 0;
+    transform: translateY(-30px) scale(0.95);
+    pointer-events: none;
 }
 
 .welcome-icon {
-    width: 72px;
-    height: 72px;
+    width: 80px;
+    height: 80px;
     background: var(--surface);
-    border-radius: 22px;
+    border-radius: 24px;
     display: grid;
     place-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     color: var(--primary);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 12px 32px rgba(227, 24, 29, 0.1);
     border: 1px solid var(--border);
 }
-.welcome-icon svg { width: 36px; height: 36px; }
+.welcome-icon svg { width: 40px; height: 40px; }
 
 .welcome-screen h2 {
-    font-size: 1.4rem;
+    font-size: 1.6rem;
     color: var(--text-heading);
     font-weight: 800;
-    margin-bottom: 6px;
-    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
 }
 
 .welcome-screen p {
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: var(--text-muted);
     max-width: 320px;
-    line-height: 1.4;
-    font-weight: 500;
+    line-height: 1.5;
 }
 
-/* =========================================
-   ПОШУК
-   ========================================= */
+/* контейнер поиска */
 .search-container {
     width: 100%;
+    max-width: 600px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    position: absolute;
-    transition: top 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    z-index: 10;
 }
 
-/* позиція в стані спокою (по центру) */
-.search-container.center {
-    top: 54%; 
-    transform: translateY(-50%);
-}
-
-/* позиція, коли почався пошук (притиснутий до верху) */
-.search-container.top {
-    top: 40px;
-    transform: translateY(0);
-}
-
+/* само поле поиска */
 .search-box {
     width: 100%;
-    max-width: 760px;
     background: var(--surface);
     display: flex;
     align-items: center;
-    padding: 16px 20px;
-    border: 2px solid transparent;
-    border-radius: 20px;
-    box-shadow: 0 8px 30px -8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0,0,0,0.02);
+    padding: 8px 8px 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
     transition: all 0.2s ease;
 }
 
+/* подсветка при клике на поиск */
 .search-box:focus-within {
-    border-color: var(--primary-soft);
-    box-shadow: 0 0 0 4px var(--primary-soft), 0 8px 30px -8px rgba(0, 0, 0, 0.08);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-soft), 0 10px 30px rgba(0,0,0,0.03);
 }
 
 .search-box input {
     width: 100%;
     border: none;
     outline: none;
-    font-size: 1.1rem;
+    font-size: 16px;
     background: transparent;
     color: var(--text-heading);
     font-weight: 500;
@@ -154,6 +156,7 @@ body {
 }
 .search-icon .ui-icon { width: 24px; height: 24px; }
 
+/* кнопка очистки поля внутри инпута */
 .search-clear {
     flex: 0 0 32px;
     width: 32px;
@@ -165,117 +168,81 @@ body {
     background: var(--surface-2);
     color: var(--text-muted);
     cursor: pointer;
-    transition: all 0.15s;
+    margin-right: 4px;
 }
 .search-clear[hidden] { display: none; }
-.search-clear:active { transform: scale(0.88); }
 
-/* =========================================
-   КНОПКИ 123 / СКАНЕР (Тільки для мобільних)
-   ========================================= */
-.scan-row {
-    display: none; /* ХОВАЄМО НА ДЕСКТОПІ */
-    align-items: center;
-    margin-top: 12px;
-    background: var(--surface-2);
-    padding: 4px;
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-}
-
-.scan-toggle, .scan-btn {
-    border: none;
-    background: transparent;
-    height: 40px;
+/* переключатель цифровой клавиатуры */
+.numeric-toggle {
+    flex: 0 0 42px;
+    height: 42px;
+    border: 0;
     border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    background: var(--surface-2);
     color: var(--text-muted);
-}
-
-.scan-toggle {
-    padding: 0 20px;
-    font-size: 0.9rem;
     font-weight: 800;
-    letter-spacing: -0.02em;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.numeric-toggle.active {
+    background: var(--primary);
+    color: #fff;
 }
 
-.scan-btn {
-    width: 44px;
-}
-
-.scan-toggle.active, .scan-btn:hover {
-    background: var(--surface);
-    color: var(--primary);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-.scan-btn svg { width: 20px; height: 20px; }
-
-/* =========================================
-   РЕЗУЛЬТАТИ ПОШУКУ
-   ========================================= */
+/* контейнер с результатами поиска */
 .results-container {
-    width: 100%;
-    position: absolute;
-    top: 120px; /* відступ від пошуку на десктопі */
-    bottom: 20px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    opacity: 0;
-    pointer-events: none;
-    padding-bottom: 40px;
+    display: none;
+    padding-bottom: 100px; /* отступ снизу для плавающей кнопки сканера */
     scrollbar-width: none;
-    z-index: 5;
 }
 .results-container::-webkit-scrollbar { display: none; }
-.results-container.active { opacity: 1; pointer-events: auto; }
 
-/* =========================================
-   АДАПТИВНІСТЬ (Медіа-запити)
-   ========================================= */
+.app-wrapper.has-results .results-container {
+    display: block;
+}
 
-/* --- МОБІЛЬНІ ПРИСТРОЇ ТА ПЛАНШЕТИ (до 899px) --- */
+/* мобильная адаптация до 899px */
 @media (max-width: 899px) {
-    /* показуємо кнопки сканера та цифрової клавіатури */
-    .scan-row {
-        display: flex; 
+    .app-wrapper {
+        padding: 76px 12px 0 12px;
+    }
+    
+    .top-area {
+        padding-bottom: 10vh;
     }
 
-    /* трохи піднімаємо пошук на мобільних, бо екран менший */
-    .search-container.center {
-        top: 52%;
+    .welcome-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        margin-bottom: 16px;
     }
+    .welcome-icon svg { width: 30px; height: 30px; }
+    
+    .welcome-screen h2 { font-size: 1.3rem; }
+    .welcome-screen p { font-size: 0.9rem; }
 
-    /* відступ для результатів, коли пошук зверху (враховуємо висоту кнопок) */
-    .results-container {
-        top: 175px; 
-    }
+    .search-box { padding: 6px 6px 6px 14px; border-radius: 14px; }
+    .numeric-toggle { flex: 0 0 40px; height: 40px; }
 
-    /* робимо картки в один стовпчик */
-    .results-container.active {
+    .app-wrapper.has-results .results-container {
         display: flex;
         flex-direction: column;
         gap: 12px;
     }
 }
 
-/* --- дескопи (від 900px і більше) --- */
+/* десктопная адаптация от 900px */
 @media (min-width: 900px) {
-    /* піднімаємо пошук трохи вище на великих екранах */
-    .search-container.top { 
-        top: 60px; 
-    }
-    
-    /* сітка з карток (2-3-4 колонки в залежності від ширини) */
-    .results-container.active { 
-        display: grid; 
-        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); 
-        gap: 20px; 
+    .app-wrapper.has-results .results-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 20px;
         align-content: start;
-        top: 140px; /* оскільки немає кнопок сканера, результати можна підняти вище */
     }
 }

@@ -17,18 +17,13 @@
 // - features/search.js дает handleSearch
 // - app/refresh.js дает manualRefresh
 // - ui/dialog.js дает _isFormField
-// - features/meter.js дает closeModal, closeConfirmModal
-// - closeStockModal, closeShipmentModal, closeRecountModal, closeNoteModal, closeAssortModal, closeOrderConfirmModal
-// - features/payment.js дает closePaymentModal
 // ============================================================
-
 
 // ============================================================
 // блок 1. список селекторов для обхода по tab
 // ============================================================
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-
 
 // ============================================================
 // блок 2. определение верхней модалки
@@ -52,28 +47,37 @@ function getTopModal() {
     return top
 }
 
-
 // ============================================================
 // блок 3. закрытие верхней модалки
 //
-// каждая модалка знает как себя закрыть по своему id
+// для диалога подтверждения жмем кнопку отмены
+// чтобы сработал cleanup внутри dialog.js и promise зарезолвился
+//
+// для остальных модалок (когда они появятся) - свои функции закрытия,
+// если функции нет - просто убираем active
 // ============================================================
 
 function closeTopModal() {
     const m = getTopModal()
     if (!m) return
 
-    if (m.id === 'modalOverlay') closeModal()
-    else if (m.id === 'confirmOverlay') closeConfirmModal()
-    else if (m.id === 'paymentOverlay') closePaymentModal()
-    else if (m.id === 'assortOverlay') closeAssortModal()
-    else if (m.id === 'orderConfirmOverlay') closeOrderConfirmModal()
-    else if (m.id === 'stockOverlay') closeStockModal()
-    else if (m.id === 'shipmentOverlay') closeShipmentModal()
-    else if (m.id === 'recountOverlay') closeRecountModal()
-    else if (m.id === 'noteOverlay') closeNoteModal()
-}
+    // диалог подтверждения - программный клик по отмене
+    if (m.id === 'confirmDialogOverlay') {
+        const cancelBtn = m.querySelector('#confirmDialogCancel')
+        if (cancelBtn) { cancelBtn.click(); return }
+    }
 
+    // задел под будущие модалки
+    if (m.id === 'modalOverlay' && typeof closeModal === 'function') closeModal()
+    else if (m.id === 'stockOverlay' && typeof closeStockModal === 'function') closeStockModal()
+    else if (m.id === 'shipmentOverlay' && typeof closeShipmentModal === 'function') closeShipmentModal()
+    else if (m.id === 'recountOverlay' && typeof closeRecountModal === 'function') closeRecountModal()
+    else if (m.id === 'noteOverlay' && typeof closeNoteModal === 'function') closeNoteModal()
+    else if (m.id === 'assortOverlay' && typeof closeAssortModal === 'function') closeAssortModal()
+    else if (m.id === 'orderConfirmOverlay' && typeof closeOrderConfirmModal === 'function') closeOrderConfirmModal()
+    else if (m.id === 'paymentOverlay' && typeof closePaymentModal === 'function') closePaymentModal()
+    else m.classList.remove('active')
+}
 
 // ============================================================
 // блок 4. запоминание и возврат фокуса
@@ -94,12 +98,8 @@ function restoreFocus() {
     _focusBeforeModal = null
 }
 
-
 // ============================================================
 // блок 5. удержание tab внутри модалки
-//
-// если фокус на первом элементе и нажат shift tab перекидываем на последний
-// если фокус на последнем и нажат tab перекидываем на первый
 // ============================================================
 
 function trapFocus(e) {
@@ -126,13 +126,14 @@ function trapFocus(e) {
     }
 }
 
-
 // ============================================================
 // блок 6. глобальные горячие клавиши
 //
 // escape закрывает верхнюю модалку или чистит поиск
 // слэш или ctrl k ставит фокус в поиск
 // r запускает ручное обновление
+//
+// функция вызывается из initEventListeners в events.js
 // ============================================================
 
 function onKeyDown(e) {
@@ -142,7 +143,8 @@ function onKeyDown(e) {
     if (e.key === 'Escape') {
         if (getTopModal()) { e.preventDefault(); closeTopModal(); return }
 
-        const si = document.getElementById('searchInput')
+        // в html поле поиска называется goodsSearch
+        const si = document.getElementById('goodsSearch')
         if (inField && si && si.value) {
             e.preventDefault()
             si.value = ''
@@ -156,7 +158,7 @@ function onKeyDown(e) {
     // слэш или ctrl k фокусирует поиск
     if (e.key === '/' || (e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey))) {
         e.preventDefault()
-        document.getElementById('searchInput')?.focus()
+        document.getElementById('goodsSearch')?.focus()
         return
     }
 
@@ -169,7 +171,6 @@ function onKeyDown(e) {
 
     trapFocus(e)
 }
-
 
 // ============================================================
 // блок 7. автфокус в модалке

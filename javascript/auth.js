@@ -1,5 +1,5 @@
 // ============================================================
-// auth.js
+// javascript/auth.js
 //
 // назначение
 // этот файл отвечает за авторизацию пользователя.
@@ -18,8 +18,9 @@
 //
 // зависимости
 // - config.js дает адрес сервиса через APP_CONFIG
-// - app/init.js, app/reset.js, core/storage.js дает startApp, resetAppState, clearLocalDb
-// - drawer.js подхватывает имя и роль пользователя
+// - app/init.js дает startApp
+// - app/reset.js дает resetAppState
+// - core/storage.js дает clearLocalDb
 //
 // порядок подключения
 // index.html подключает auth.js после config.js
@@ -63,7 +64,9 @@ let currentUser = null;
 //
 // тут два сценария.
 // если пользователь уже сохранен, форма входа скрывается
-// и приложение запускается через startApp.
+// и показывается бейдж пользователя.
+// сам запуск приложения (startApp) делает init.js
+// после того как все обработчики повешены.
 // иначе форма показывается и ставится фокус в поле пин-кода.
 // ============================================================
 
@@ -74,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentUser) {
         if (authOverlay) authOverlay.style.display = 'none';
         showUserInfo();
-        if (typeof startApp === 'function') startApp();
+        // startApp вызовет init.js после инициализации слушателей
     } else {
         // сессии нет, показываем форму
         if (authOverlay) authOverlay.style.display = 'flex';
@@ -201,7 +204,7 @@ async function login() {
 // задача аккуратно обнулить все что связано с прошлой сессией.
 // порядок такой
 // 1. чистим кеш поиска номенклатуры
-// 2. закрываем боковую панель
+// 2. закрываем сканер если открыт
 // 3. закрываем все открытые модалки
 // 4. удаляем пользователя из localStorage
 // 5. чистим локальную базу кроме очереди
@@ -254,7 +257,8 @@ function logout() {
     const resultsContainer = document.getElementById('resultsContainer');
     if (resultsContainer) resultsContainer.innerHTML = '';
 
-    const searchInput = document.getElementById('searchInput');
+    // в html поле поиска называется goodsSearch (а не searchInput как было в старом проекте)
+    const searchInput = document.getElementById('goodsSearch');
     if (searchInput) searchInput.value = '';
 
     // сбрасываем состояние приложения
@@ -264,9 +268,8 @@ function logout() {
 // ============================================================
 // блок 5. показ имени пользователя и кнопки выхода
 //
-// создает два элемента в блоке userBadge
-// первый это имя с иконкой
-// второй это кнопка выхода
+// создает три элемента в блоке userBadge
+// иконка, имя и кнопка выхода
 //
 // метод replaceChildren полностью заменяет содержимое блока
 // это дешевле чем удалять старое вручную
@@ -276,26 +279,22 @@ function showUserInfo() {
     const userBadge = document.getElementById('userBadge');
     if (!userBadge || !currentUser) return;
 
-    // SVG іконка профілю
+    // svg иконка профиля
     const icon = document.createElement('div');
     icon.className = 'user-avatar';
     icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
 
-    // Ім'я користувача
+    // имя пользователя
     const name = document.createElement('span');
     name.className = 'user-name';
-    name.textContent = currentUser.name; // Без емодзі!
+    name.textContent = currentUser.name;
 
-    // Кнопка виходу
+    // кнопка выхода
     const btn = document.createElement('button');
     btn.className = 'logout-btn';
     btn.type = 'button';
-    btn.innerHTML = `Вийти`;
+    btn.textContent = 'Вийти';
     btn.addEventListener('click', logout);
 
     userBadge.replaceChildren(icon, name, btn);
-
-    if (typeof updateDrawerUser === 'function') {
-        updateDrawerUser();
-    }
 }

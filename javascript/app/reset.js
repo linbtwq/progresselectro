@@ -1,3 +1,22 @@
+// ============================================================
+// javascript/app/reset.js
+//
+// назначение
+// сброс состояния приложения при выходе из системы.
+//
+// ответственность
+// - обнулить данные товаров и индексы
+// - остановить таймеры
+// - очистить визуальные следы прошлого пользователя
+//
+// зависимости
+// - core/state.js дает флаги, таймеры, _lastStatusKey
+// - features/search.js дает _searchTimer
+// - ui/status.js дает renderStatus
+// - ui/backToTop.js дает updateBackToTop
+// - app/refresh.js дает stopAutoRefresh
+// ============================================================
+
 function resetAppState() {
     goodsData = [];
     goodsByCode.clear();
@@ -12,11 +31,11 @@ function resetAppState() {
     lastSyncError = '';
     connectionOnline = null;
 
-    isAtTop = false;
     _lastStatusKey = '';
 
-    clearTimeout(searchTimer);
-    cancelAnimationFrame(renderFrame);
+    // в search.js таймер называется _searchTimer (с подчеркиванием)
+    // cancelAnimationFrame(renderFrame) убран
+    clearTimeout(_searchTimer);
     clearTimeout(retryTimer);
     clearTimeout(toastTimer);
 

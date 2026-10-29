@@ -1,134 +1,209 @@
-/* ============================================================
-   ui.css — базові елементи інтерфейсу
-   ============================================================ */
-
-/* Верхняя панель кнопок (А, Кошик, Тема) */
-.theme-toggle, .cache-toggle, #fontScaleBtn {
+/* шапка с профилем и кнопкой настроек */
+.top-bar {
     position: fixed;
-    top: 16px;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px; /* Квадратные с закруглением - выглядит современнее */
-    background: var(--surface);
-    border: 1px solid var(--border);
-    display: grid;
-    place-items: center;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: max(16px, env(safe-area-inset-top)) 16px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     z-index: 100;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    color: var(--text-heading);
-    transition: all 0.2s ease;
+    pointer-events: none;
 }
+.top-bar > * { pointer-events: auto; }
 
-/* Ровный ряд */
-.theme-toggle { right: 16px; }
-.cache-toggle { right: 68px; }
-#fontScaleBtn { right: 120px !important; font-weight: 800; font-size: 16px; }
-
-.theme-toggle:hover, .cache-toggle:hover, #fontScaleBtn:hover {
-    background: var(--surface-2);
-    border-color: var(--primary);
-    color: var(--primary);
-}
-.theme-toggle:active, .cache-toggle:active, #fontScaleBtn:active { 
-    transform: scale(0.92); 
-}
-
-/* Блок користувача (зліва зверху) */
+/* блок профиля пользователя */
 .user-badge {
-    position: fixed;
-    top: 16px; 
-    left: 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    z-index: 100;
-    background: var(--surface);
-    padding: 6px;
-    border-radius: 30px;
-    border: 1px solid var(--border);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-/* Аватарка користувача (генерується через ::before) */
-.user-badge::before {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 32px;
-    height: 32px;
-    background: var(--surface-2);
-    border-radius: 50%;
-    font-size: 1rem;
-}
-
-/* Ім'я користувача */
-.user-name {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--text-heading);
-    margin-right: 4px;
-}
-
-/* Кнопка виходу */
-.logout-btn {
-    background: var(--danger-soft);
-    border: none;
-    color: var(--danger);
-    padding: 8px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-}
-.logout-btn:hover { 
-    background: var(--danger); 
-    color: #fff; 
-}
-
-/* Статус зв'язку (внизу зліва) */
-.connection-status {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 14px;
+    background: var(--surface);
+    padding: 5px 5px 5px 14px;
+    border-radius: 30px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    max-width: calc(100vw - 100px);
+}
+.user-avatar {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    background: var(--surface-2);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: var(--text-muted);
+}
+.user-avatar svg { width: 14px; height: 14px; }
+.user-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.logout-btn {
+    flex: 0 0 auto;
+    background: var(--danger-soft);
+    border: none;
+    color: var(--danger);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* кнопка настроек (шестеренка) */
+.settings-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-heading);
+    display: grid;
+    place-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.settings-btn svg { width: 20px; height: 20px; }
+.settings-btn:active { transform: rotate(45deg); }
+
+/* выпадающее меню настроек */
+.settings-menu {
+    position: fixed;
+    top: max(70px, calc(env(safe-area-inset-top) + 60px));
+    right: 16px;
+    width: 220px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    z-index: 99;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px) scale(0.95);
+    transform-origin: top right;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.settings-menu.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+/* пункты внутри выпадающего меню */
+.menu-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    transition: background 0.15s;
+    text-align: left;
+}
+.menu-item:hover { background: var(--surface-2); }
+.menu-item.danger { color: var(--danger); }
+.menu-item.danger:hover { background: var(--danger-soft); }
+
+/* иконки и значения внутри меню */
+.menu-icon {
+    display: grid;
+    place-items: center;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+}
+.menu-icon svg { width: 20px; height: 20px; }
+.menu-value {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+/* плавающая кнопка сканера штрихкодов */
+.fab-scanner {
+    position: fixed;
+    bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px));
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 8px 24px rgba(227, 24, 29, 0.4);
+    z-index: 900;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.fab-scanner svg { width: 28px; height: 28px; }
+.fab-scanner:active {
+    transform: scale(0.9);
+    box-shadow: 0 4px 12px rgba(227, 24, 29, 0.4);
+}
+
+/* индикатор связи с сервером внизу слева */
+.connection-status {
+    position: fixed;
+    bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px));
+    left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
     background: var(--surface);
     border-radius: 20px;
     border: 1px solid var(--border);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
     z-index: 900;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 600;
     cursor: pointer;
     color: var(--text-muted);
-    transition: all 0.2s;
 }
-
-/* Робимо статус менш помітним, коли все добре */
-.connection-status.online:not(.has-queue) {
-    opacity: 0.6;
-}
-.connection-status.online:not(.has-queue):hover {
-    opacity: 1;
-}
-
+.connection-status.online:not(.has-queue) { opacity: 0.6; }
+.connection-status.online:not(.has-queue):hover { opacity: 1; }
 .connection-status .status-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--text-muted);
 }
-
-.connection-status.online .status-dot { 
-    background: var(--success); 
-    box-shadow: 0 0 6px var(--success); 
+.connection-status.online .status-dot {
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success);
 }
 
-/* Тост (успіх/помилка) */
+/* версия приложения в самом низу по центру */
+.app-version {
+    position: fixed;
+    bottom: max(8px, calc(env(safe-area-inset-bottom) + 4px));
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    opacity: 0.4;
+    z-index: 10;
+    font-family: ui-monospace, monospace;
+}
+
+/* всплывающие уведомления (тосты) */
 .toast {
     position: fixed;
     top: -100px;
@@ -139,32 +214,17 @@
     padding: 12px 24px;
     border-radius: 30px;
     z-index: 9999;
-    transition: top 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 8px 24px rgba(14, 166, 92, 0.3);
+    transition: top 0.3s;
     font-weight: 600;
     font-size: 0.9rem;
     display: flex;
     align-items: center;
     gap: 8px;
 }
-.toast.show { top: 24px; }
-.toast.error { background: var(--danger); box-shadow: 0 8px 24px rgba(224, 58, 58, 0.3); }
+.toast.show { top: max(24px, env(safe-area-inset-top)); }
+.toast.error { background: var(--danger); }
 
-/* Версія додатку */
-.app-version {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    opacity: 0.5;
-    z-index: 10;
-    font-family: ui-monospace, monospace;
-}
-
-/* =========================================
-   АВТОРИЗАЦІЯ (Строгий преміум)
-   ========================================= */
+/* экран авторизации по пин-коду */
 .auth-overlay {
     position: fixed;
     inset: 0;
@@ -173,67 +233,32 @@
     align-items: center;
     z-index: 2000;
     padding: 20px;
-    background: #f4f6f8; /* Однотонный чистый фон */
+    background: #f4f6f8;
 }
-
-body.dark-theme .auth-overlay {
-    background: #0f1115; /* Темный фон без градиентов */
-}
-
+body.dark-theme .auth-overlay { background: #0f1115; }
 .auth-box {
     background: var(--surface);
     padding: 40px 32px;
-    border-radius: 20px; /* Меньше скругление — выглядит строже */
+    border-radius: 20px;
     width: 100%;
-    max-width: 380px; /* Чуть шире */
+    max-width: 380px;
     text-align: center;
-    box-shadow: 
-        0 10px 30px -5px rgba(0, 0, 0, 0.08),
-        0 4px 10px -2px rgba(0, 0, 0, 0.04),
-        0 0 0 1px rgba(0,0,0,0.03); /* Тонкая обводка вместо border */
-    position: relative;
-    animation: popIn 0.4s ease-out backwards;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
 }
-
-body.dark-theme .auth-box {
-    box-shadow: 
-        0 10px 30px -5px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255,255,255,0.05);
-}
-
-/* Иконка в красном круге */
 .auth-logo {
     width: 56px;
     height: 56px;
-    background: var(--primary-soft); /* Светло-красный фон */
-    color: var(--primary); /* Красная иконка */
+    background: var(--primary-soft);
+    color: var(--primary);
     border-radius: 16px;
     display: flex;
     justify-content: center;
     align-items: center;
     margin: 0 auto 20px;
 }
-.auth-logo svg {
-    width: 28px;
-    height: 28px;
-}
-
-.auth-box h2 {
-    margin: 0 0 6px;
-    color: var(--text-heading);
-    font-size: 1.5rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-}
-
-.auth-box p {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-bottom: 28px;
-    line-height: 1.4;
-}
-
-/* Поле ввода */
+.auth-logo svg { width: 28px; height: 28px; }
+.auth-box h2 { margin: 0 0 6px; color: var(--text-heading); font-size: 1.5rem; font-weight: 800; }
+.auth-box p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 28px; }
 .pin-input {
     width: 100%;
     padding: 16px;
@@ -242,38 +267,18 @@ body.dark-theme .auth-box {
     border: 2px solid transparent;
     border-radius: 12px;
     margin-bottom: 16px;
-    letter-spacing: 12px; /* Точки будут разнесены */
-    background: var(--surface-2); /* Серый фон */
+    letter-spacing: 12px;
+    background: var(--surface-2);
     color: var(--text-heading);
     outline: none;
     font-weight: 700;
-    transition: all 0.2s ease;
 }
-
-.pin-input::placeholder {
-    letter-spacing: 6px;
-    font-size: 1.2rem;
-    color: var(--text-muted);
-    opacity: 0.4;
-}
-
-/* При клике — белый фон и красная обводка */
 .pin-input:focus {
     border-color: var(--primary);
     background: var(--surface);
     box-shadow: 0 0 0 4px var(--primary-soft);
 }
-
-.auth-error {
-    color: var(--danger);
-    font-size: 0.85rem;
-    margin-top: -8px;
-    margin-bottom: 16px;
-    font-weight: 600;
-    animation: shake 0.4s ease;
-}
-
-/* Кнопка */
+.auth-error { color: var(--danger); font-size: 0.85rem; margin-bottom: 16px; font-weight: 600; }
 .auth-box .action-btn {
     width: 100%;
     padding: 16px;
@@ -284,56 +289,14 @@ body.dark-theme .auth-box {
     font-weight: 700;
     border: none;
     cursor: pointer;
-    transition: all 0.2s ease;
-    /* Эффект 3D кнопки (тень снизу) */
     box-shadow: 0 4px 0 var(--primary-strong);
-    margin-top: 8px;
 }
-
-.auth-box .action-btn:hover {
-    background: var(--primary-strong);
-    transform: translateY(2px); /* Кнопка "вдавливается" */
-    box-shadow: 0 2px 0 var(--primary-strong);
-}
-
 .auth-box .action-btn:active {
     transform: translateY(4px);
-    box-shadow: 0 0 0 var(--primary-strong);
+    box-shadow: none;
 }
 
-@keyframes popIn {
-    from { opacity: 0; transform: scale(0.96) translateY(10px); }
-    to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-@keyframes shake {
-    10%, 90% { transform: translateX(-2px); }
-    20%, 80% { transform: translateX(4px); }
-    30%, 50%, 70% { transform: translateX(-6px); }
-    40%, 60% { transform: translateX(6px); }
-}
-
-/* Спінер */
-.ptr-spinner {
-    position: absolute;
-    top: 160px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-40px);
-    opacity: 0;
-    pointer-events: none;
-    font-size: 1.5rem;
-    color: var(--primary);
-    transition: all 0.2s ease;
-    z-index: 5;
-}
-.ptr-spinner.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
-.ptr-spinner.spinning { animation: spin 1s linear infinite; }
-
-@keyframes spin { 100% { transform: rotate(360deg); } }
-
-/* =========================================
-   ЭКРАН СКАНЕРА ШТРИХ-КОДОВ
-   ========================================= */
+/* окно сканера штрихкодов */
 #barcodeScannerOverlay {
     position: fixed;
     inset: 0;
@@ -342,34 +305,16 @@ body.dark-theme .auth-box {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
 }
-
 .scanner-box {
     position: relative;
     width: 100%;
     height: 100%;
     max-width: 600px;
-    max-height: 100dvh;
     overflow: hidden;
     background: #000;
 }
-
-@media (min-width: 600px) {
-    .scanner-box {
-        height: 85vh;
-        border-radius: 20px;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    }
-}
-
-#scannerVideo {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Затемнение вокруг рамки */
+#scannerVideo { width: 100%; height: 100%; object-fit: cover; }
 .scanner-overlay {
     position: absolute;
     inset: 0;
@@ -379,8 +324,6 @@ body.dark-theme .auth-box {
     justify-content: center;
     pointer-events: none;
 }
-
-/* Рамка-видоискатель */
 .scanner-target {
     position: relative;
     width: 75%;
@@ -400,8 +343,6 @@ body.dark-theme .auth-box {
     background-repeat: no-repeat;
     background-size: 24px 24px;
 }
-
-/* Красная лазерная линия (фирменный цвет) */
 .scanner-laser {
     position: absolute;
     top: 0;
@@ -412,23 +353,19 @@ body.dark-theme .auth-box {
     box-shadow: 0 0 10px var(--primary);
     animation: scanMove 2s infinite linear;
 }
-
 @keyframes scanMove {
     0% { top: 10%; opacity: 0; }
     10% { opacity: 1; }
     90% { opacity: 1; }
     100% { top: 90%; opacity: 0; }
 }
-
 .scanner-hint {
     margin-top: 32px;
     color: #fff;
     font-size: 1rem;
     font-weight: 500;
-    text-align: center;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
-
 #scannerCloseBtn {
     position: absolute;
     bottom: max(30px, env(safe-area-inset-bottom));
@@ -437,13 +374,44 @@ body.dark-theme .auth-box {
     background: rgba(255, 255, 255, 0.15);
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     padding: 14px 32px;
     border-radius: 999px;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    z-index: 10;
 }
-#scannerCloseBtn:active { background: rgba(255, 255, 255, 0.3); }
+
+/* кнопка возврата к началу списка, появляется при скролле */
+.back-to-top {
+    position: fixed;
+    right: 20px;
+    bottom: max(96px, calc(env(safe-area-inset-bottom) + 88px));
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text-heading);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    z-index: 850;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, visibility 0s linear 0.2s, transform 0.2s ease;
+}
+.back-to-top.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity 0.2s ease, visibility 0s, transform 0.2s ease;
+}
+.back-to-top svg {
+    width: 22px;
+    height: 22px;
+}
+.back-to-top:active {
+    transform: scale(0.9);
+}

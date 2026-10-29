@@ -1,7 +1,4 @@
-/* ============================================================
-   theme.css — палітра «Прогрес Електро» (Red/Yellow)
-   ============================================================ */
-
+/* палитра цветов для светлой темы */
 :root {
     --bg: #FAFAFA;
     --bg-soft: #ffffff;
@@ -17,12 +14,10 @@
     --text-heading: #111827;
     --text-muted: #6B7280;
 
-    /* Фирменный красный из логотипа */
     --primary: #E3181D;
     --primary-strong: #C41216;
     --primary-soft: rgba(227, 24, 29, 0.08);
     
-    /* Фирменный желтый из логотипа */
     --accent: #FFC107;
     --accent-soft: rgba(255, 193, 7, 0.15);
 
@@ -41,6 +36,7 @@
     --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 
+/* палитра цветов для темной темы */
 body.dark-theme, html.dark-theme-boot {
     --bg: #121212;
     --bg-soft: #1E1E1E;
@@ -56,7 +52,6 @@ body.dark-theme, html.dark-theme-boot {
     --text-heading: #F9FAFB;
     --text-muted: #9CA3AF;
 
-    /* Ярче красный для темной темы */
     --primary: #FF3B30;
     --primary-strong: #E3181D;
     --primary-soft: rgba(255, 59, 48, 0.15);
@@ -74,142 +69,102 @@ body.dark-theme, html.dark-theme-boot {
     --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.6);
 }
 
-body, body.dark-theme {
-    background-color: var(--bg);
-    background-image: radial-gradient(circle at 50% 0%, var(--bg-soft) 0%, var(--bg) 100%);
-    background-attachment: fixed;
-}
-
+/* применяем основной шрифт ко всем элементам */
 *, *::before, *::after { font-family: var(--font-ui); }
 
-/* =========================================
-   КАРТКА ТОВАРУ
-   ========================================= */
+/* карточка товара */
 .goods-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--r-lg);
     box-shadow: var(--shadow-card);
-    padding: 18px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
+    height: auto;
     animation: goodsEnter 0.3s ease-out both;
     animation-delay: calc(var(--i, 0) * 20ms);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
 }
 
-@media (hover: hover) {
-    .goods-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-float);
-    }
-}
-
+/* анимация появления карточки */
 @keyframes goodsEnter {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/* шапка карточки с названием и ценой */
 .goods-head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--separator);
 }
+
 .goods-title {
     flex: 1;
-    min-width: 0;
     color: var(--text-heading);
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1.15rem;
+    font-weight: 800;
     line-height: 1.3;
     overflow-wrap: anywhere;
 }
-.goods-code {
+
+/* блок с ценой справа сверху */
+.goods-price-block {
     flex: 0 0 auto;
-    padding: 4px 10px;
-    border-radius: 8px;
-    background: var(--surface-2);
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+}
+.goods-price-block .price-label {
+    font-size: 0.65rem;
     color: var(--text-muted);
-    font-family: ui-monospace, monospace;
-    font-size: 0.75rem;
+    text-transform: uppercase;
     font-weight: 700;
 }
+.goods-price-block .price-val {
+    color: #D97706;
+    font-size: 1.3rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+body.dark-theme .goods-price-block .price-val {
+    color: var(--accent);
+}
 
+/* метаданные (код, штрихкод, остаток) */
 .goods-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
-    align-items: flex-start;
-    margin-bottom: 16px; 
-}
-
-.goods-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: auto; 
-}
-.goods-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 80px;
-}
-.goods-field label {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    font-weight: 700;
-}
-.goods-field span {
-    font-size: 1rem;
-    color: var(--text);
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
-
-/* ЖЕЛТА ЦІНА (під логотип) */
-.goods-field span.price { 
-    color: #D97706; /* Темно-жовтий/золотистий для світлої теми */
-    font-size: 1.25rem;
-    font-weight: 800; 
-}
-body.dark-theme .goods-field span.price {
-    color: var(--accent); /* Яскраво-жовтий для темної */
-}
-
-/* БЕЙДЖІ ДЛЯ ЗАЛИШКУ */
-.goods-field span.stock-ok,
-.goods-field span.stock-zero {
-    display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    width: fit-content;
-}
-.goods-field span.stock-ok { 
-    color: var(--success); 
-    background: var(--success-soft);
-}
-.goods-field span.stock-zero { 
-    color: var(--danger); 
-    background: var(--danger-soft);
+    gap: 8px 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--separator);
 }
 
-.goods-field span.barcode {
+.goods-code, .goods-barcode {
+    font-size: 0.75rem;
     font-family: ui-monospace, monospace;
-    font-size: 0.9rem;
-    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    font-weight: 600;
 }
+.goods-code::before { content: 'код: '; }
+.goods-barcode::before { content: 'штрихкод: '; }
 
-/* Кнопки */
+/* бейдж остатка товара */
+.goods-stock {
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+.goods-stock.ok { color: var(--success); background: var(--success-soft); }
+.goods-stock.zero { color: var(--danger); background: var(--danger-soft); }
+
+/* кнопки действий в карточке */
 .goods-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -217,15 +172,14 @@ body.dark-theme .goods-field span.price {
     margin-top: 4px;
 }
 .goods-actions .action-btn {
-    min-height: 46px;
+    min-height: 50px;
     border-radius: var(--r);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 700;
     cursor: pointer;
     border: none;
     transition: all 0.15s ease;
 }
-
 .goods-actions .btn-outline {
     background: var(--surface-2);
     border: 1px solid var(--border);
@@ -235,8 +189,6 @@ body.dark-theme .goods-field span.price {
     background: var(--surface-3);
     transform: scale(0.97);
 }
-
-/* Красная кнопка (Дія 2) */
 .goods-actions .btn-primary {
     background: var(--primary);
     color: #fff;
@@ -247,9 +199,7 @@ body.dark-theme .goods-field span.price {
     background: var(--primary-strong);
 }
 
-/* =========================================
-   ПОРОЖНІЙ СТАН
-   ========================================= */
+/* пустой экран если ничего не найдено */
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -259,7 +209,6 @@ body.dark-theme .goods-field span.price {
     text-align: center;
     padding: 50px 20px;
     color: var(--text-muted);
-    background: transparent;
     border: 2px dashed var(--border);
     border-radius: var(--r-lg);
     margin: 0 auto;
@@ -269,6 +218,3 @@ body.dark-theme .goods-field span.price {
 }
 .empty-icon { width: 48px; height: 48px; opacity: 0.4; }
 .empty-text { font-size: 1rem; line-height: 1.5; font-weight: 500; }
-
-.show-more-wrap { padding: 20px 0; text-align: center; grid-column: 1 / -1; }
-.show-more-progress { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; }

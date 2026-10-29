@@ -2,25 +2,27 @@
 // javascript/app/submit.js
 //
 // назначение
-// единая точка отправки документов в 1С.
-// устраняет дублирование кода в submitOrder, submitRecount,
-// submitShipment, submitNote, submitPayment.
+// единая точка отправки документов в 1с.
+// сейчас не используется, это заготовка на будущее.
+// когда появится отправка заказов, списаний или показаний,
+// использовать эту функцию чтобы не дублировать код.
 //
 // ответственность
 // - блокировка кнопок на время отправки
 // - перехват сетевых ошибок и таймаутов
-// - проверка поля conduct_error (документ создан, но не проведен)
+// - проверка поля conduct_error (документ создан но не проведен)
 // - показ галочки успеха и обновление данных
 //
 // особенности
-// onSuccess — это пользовательский коллбэк который
+// onSuccess - пользовательский коллбэк который
 // закрывает модалку и чистит форму.
-// он не должен ронять loadData,
-// поэтому обёрнут в try/catch.
+// он обернут в try/catch чтобы не ронять перезагрузку данных.
 //
-// порядок подключения
-// index.html подключает submit.js перед features-модулями,
-// которые его используют: assortments, recount, shipment, notes, payment.
+// зависимости
+// - core/api.js дает postJson
+// - core/utils.js дает isBlankServerError
+// - ui/toast.js дает showToast, showSuccessAnimation
+// - app/load.js дает loadGoodsData
 // ============================================================
 
 async function submitDocument({
@@ -63,7 +65,7 @@ async function submitDocument({
             if (!isBlankServerError(raw)) conductError = raw;
         }
 
-        // явная ошибка от 1с (например, отказ в проведении)
+        // явная ошибка от 1с
         if (responseBody && responseBody.ok === false) {
             throw new Error(responseBody.error || responseBody.debt_error || '1С відхилила документ.');
         }
@@ -92,8 +94,8 @@ async function submitDocument({
                 if (successText && typeof showToast === 'function') showToast(successText);
             }
 
-            // вызываем коллбэк для специфических действий (очистка формы, закрытие модалки)
-            // ловим ошибку чтобы не сломать последующий loadData
+            // пользовательский коллбэк (закрытие модалки, очистка формы)
+            // ловим ошибку чтобы не сломать перезагрузку данных
             if (typeof onSuccess === 'function') {
                 try {
                     onSuccess(responseBody, conductError);
@@ -102,19 +104,18 @@ async function submitDocument({
                 }
             }
 
-            // обновляем данные с сервера
-            // тоже в try/catch: если 1с недоступна после отправки,
-            // пользователь всё равно должен увидеть результат документа
-            if (typeof loadData === 'function') {
+            // перезагружаем данные с сервера
+            // в проекте функция называется loadGoodsData, а не loadData
+            if (typeof loadGoodsData === 'function') {
                 try {
-                    loadData({ silent: true });
+                    loadGoodsData({ silent: true });
                 } catch (e) {
-                    console.error('[submitDocument] loadData failed:', e);
+                    console.error('[submitDocument] loadGoodsData failed:', e);
                 }
             }
         }
 
-        // снимаем спиннер и разблокируем крестик в самом конце, когда окно уже закрылось
+        // снимаем спиннер и разблокируем крестик в самом конце
         if (btn) resetBtn(btn, btn.dataset.originalText || 'OK');
         if (closeBtn) closeBtn.disabled = false;
     }
