@@ -9,12 +9,10 @@ let shipmentItems = []
 let shipmentSearchQuery = ''
 let shipmentSearchNumeric = false;
 
-// ============================================================
-// блок 1. создание окна
-// ============================================================
 function closeShipmentModal() {
     if (shipmentSending) return
     document.getElementById('shipmentOverlay')?.classList.remove('active')
+    document.body.classList.remove('modal-open'); // Убираем класс
     shipmentRequestId = null
     shipmentItems = []
     shipmentSearchQuery = ''
@@ -24,9 +22,6 @@ function closeShipmentModal() {
     }
 }
 
-// ============================================================
-// блок 2. открытие и загрузка с сервера
-// ============================================================
 async function openShipmentModal() {
     if (shipmentLoading) return
 
@@ -39,10 +34,24 @@ async function openShipmentModal() {
 
     if (!overlay) return
 
+    // === ФИКС КРЕСТИКА ===
+    const closeBtn = overlay.querySelector('.modal-close');
+    if (closeBtn) {
+        const newCloseBtn = closeBtn.cloneNode(true);
+        closeBtn.replaceWith(newCloseBtn);
+        newCloseBtn.addEventListener('click', closeShipmentModal);
+    }
+
+    // Добавляем класс, чтобы подвинуть сканер
+    document.body.classList.add('modal-open');
+
     shipmentRequestId = newRequestId()
     shipmentItems = []
     shipmentSearchQuery = ''
 
+    // Убираем "test" и пишем нормальный текст
+    sub.textContent = 'Вибір товарів'
+    
     summary.textContent = ''
     sendBtn.disabled = true
 
@@ -89,9 +98,6 @@ async function openShipmentModal() {
     }
 }
 
-// ============================================================
-// блок 3. отрисовка тела модалки
-// ============================================================
 function renderShipmentBody() {
     const body = document.getElementById('shipmentBody')
     if (!body) return
@@ -198,9 +204,6 @@ function renderShipmentBody() {
     updateShipmentSummary()
 }
 
-// ============================================================
-// блок 4. html для списка строк
-// ============================================================
 function renderShipmentRows() {
     return shipmentItems.map((it, i) => {
         return renderProductRow({
@@ -222,9 +225,6 @@ function updateShipmentRow(row, idx) {
     row.classList.toggle('picked', it.qty > 0)
 }
 
-// ============================================================
-// блок 5. итоги и поиск
-// ============================================================
 function updateShipmentSummary() {
     const summary = document.getElementById('shipmentSummary')
     const btn = document.getElementById('shipmentSendBtn')
@@ -257,9 +257,6 @@ function applyShipmentSearch() {
     document.getElementById('shipmentNoMatch').style.display = shown ? 'none' : 'block'
 }
 
-// ============================================================
-// блок 6. отправка в 1с
-// ============================================================
 async function submitShipment() {
     if (shipmentSending) return;
 
@@ -272,6 +269,7 @@ async function submitShipment() {
     if (!navigator.onLine) return showToast('Немає мережі! Додавання лише онлайн.', true);
 
     const payload = {
+        point_id: '0', 
         technician_id: currentUser ? currentUser.id : '',
         request_id: shipmentRequestId || newRequestId(),
         items
@@ -298,9 +296,6 @@ async function submitShipment() {
     if (shipmentItems.length) updateShipmentSummary();
 }
 
-// ============================================================
-// поиск по штрихкоду
-// ============================================================
 let _shipmentHighlightTimer = null;
 let _shipmentScanSeq = 0;
 
