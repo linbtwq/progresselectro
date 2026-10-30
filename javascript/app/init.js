@@ -44,7 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function startApp() {
+    const user = currentUser;
     await initQueueStorage();
+    if (!user || currentUser !== user) return;
+    scheduleStatusLoop();
+    renderRecentSearches();
     loadGoodsData();
     if (navigator.onLine) syncOfflineMeters();
     startAutoRefresh();

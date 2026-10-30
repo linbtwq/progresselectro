@@ -68,7 +68,10 @@ function closeTopModal() {
     }
 
     // задел под будущие модалки
-    if (m.id === 'modalOverlay' && typeof closeModal === 'function') closeModal()
+    if (m.id === 'invoiceHistoryOverlay') closeInvoiceHistory()
+    else if (m.id === 'quantityKeyboardOverlay') closeQuantityKeyboard()
+    else if (m.id === 'barcodeScannerOverlay') closeBarcodeScanner()
+    else if (m.id === 'modalOverlay' && typeof closeModal === 'function') closeModal()
     else if (m.id === 'stockOverlay' && typeof closeStockModal === 'function') closeStockModal()
     else if (m.id === 'shipmentOverlay' && typeof closeShipmentModal === 'function') closeShipmentModal()
     else if (m.id === 'recountOverlay' && typeof closeRecountModal === 'function') closeRecountModal()
@@ -148,7 +151,8 @@ function onKeyDown(e) {
         if (inField && si && si.value) {
             e.preventDefault()
             si.value = ''
-            handleSearch({ target: si })
+            document.getElementById('searchClear').hidden = true
+            runGoodsSearch('')
             return
         }
     }

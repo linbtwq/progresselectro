@@ -27,10 +27,15 @@
 
 function initEventListeners() {
     initGoodsSearch();
+    initQuantityKeyboard();
+    initInvoiceHistory();
+    document.getElementById('shipmentSendBtn')?.addEventListener('click', submitShipment);
 
     const results = document.getElementById('resultsContainer');
     if (results) {
-        results.addEventListener('click', handleGoodsCardClick);
+        results.addEventListener('click', event => {
+            if (event.target.closest('[data-action="more"]')) showMoreGoods();
+        });
     }
 
     const statusBox = document.getElementById('connectionStatus');

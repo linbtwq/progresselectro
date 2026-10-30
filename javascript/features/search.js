@@ -3,7 +3,25 @@ let _searchTimer = null;
 let _searchSeq = 0;
 let _searchAbort = null;
 
-const GOODS_PAGE_LIMIT = 60;
+const GOODS_PAGE_LIMIT = APP_CONFIG.pageSize || 60;
+let _goodsResults = [];
+let _goodsShown = 0;
+function cancelGoodsSearch() {
+    clearTimeout(_searchTimer);
+    ++_searchSeq;
+    if (_searchAbort) _searchAbort.abort();
+    _searchAbort = null;
+}
+function showMoreGoods() {
+    const container = document.getElementById('resultsContainer');
+    if (!container || _goodsShown >= _goodsResults.length) return;
+    container.querySelector('.show-more-wrap')?.remove();
+    const end = Math.min(_goodsShown + GOODS_PAGE_LIMIT, _goodsResults.length);
+    container.insertAdjacentHTML('beforeend', _goodsResults.slice(_goodsShown, end).map((item, i) => goodsCardHtml(item, i)).join(''));
+    _goodsShown = end;
+    if (end < _goodsResults.length) container.insertAdjacentHTML('beforeend',
+        '<div class="show-more-wrap"><div class="show-more-progress">' + end + ' із ' + _goodsResults.length + '</div><button class="action-btn btn-secondary" data-action="more">Показати ще</button></div>');
+}
 
 function buildGoodsIndex() {
     if (goodsIndexBuilt) return;
@@ -30,7 +48,6 @@ function localSearchGoods(query) {
         if (name.includes(q) || code.includes(q) || barcode.includes(q)) {
             results.push(g);
         }
-        if (results.length >= GOODS_PAGE_LIMIT * 4) break; // Ограничитель
     }
     return results;
 }
@@ -41,7 +58,7 @@ async function remoteSearchGoods(query, signal) {
     const res = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store', signal }, APP_CONFIG.loadTimeoutMs);
     if (!res.ok) throw new Error('Помилка мережі');
     const data = await res.json();
-    return Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
+    return {items: Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []), truncated: data.truncated === true};
 }
 
 function handleGoodsSearchInput(e) {
@@ -49,13 +66,15 @@ function handleGoodsSearchInput(e) {
     const clearBtn = document.getElementById('searchClear');
     if (clearBtn) clearBtn.hidden = !query;
 
-    clearTimeout(_searchTimer);
+    cancelGoodsSearch();
     _searchTimer = setTimeout(() => runGoodsSearch(query), 200); // 200мс дебаунс
 }
 
 async function runGoodsSearch(query) {
-    const seq = ++_searchSeq;
-    if (_searchAbort) _searchAbort.abort();
+    cancelGoodsSearch();
+    const seq = _searchSeq;
+    _goodsResults = [];
+    _goodsShown = 0;
 
     const appWrapper = document.getElementById('appWrapper');
     const resultsContainer = document.getElementById('resultsContainer');
@@ -66,6 +85,7 @@ async function runGoodsSearch(query) {
     if (!query) {
         appWrapper.classList.remove('has-results');
         resultsContainer.innerHTML = '';
+        renderRecentSearches();
         return;
     }
 
@@ -77,7 +97,7 @@ async function runGoodsSearch(query) {
         return;
     }
 
-    if (goodsData.length) {
+    if (goodsData.length && !navigator.onLine) {
         const local = localSearchGoods(query);
         if (seq === _searchSeq) renderGoodsResults(local, query, false);
         return;
@@ -88,15 +108,21 @@ async function runGoodsSearch(query) {
     try {
         const items = await remoteSearchGoods(query, _searchAbort.signal);
         if (seq !== _searchSeq) return;
-        renderGoodsResults(items, query, true);
+        renderGoodsResults(items.items, query, true);
+        if (items.truncated) resultsContainer.insertAdjacentHTML('beforeend', '<p class="search-note">Показано перші 50 товарів. Уточніть пошук.</p>');
     } catch (err) {
         if (err.name === 'AbortError') return;
         if (seq !== _searchSeq) return;
-        resultsContainer.innerHTML = emptyStateHtml('Помилка пошуку', '36px 20px', 'alert');
+        const cached = localSearchGoods(query);
+        if (cached.length) { renderGoodsResults(cached, query, false); showToast('Офлайн: результати зі збережених товарів'); }
+        else resultsContainer.innerHTML = emptyStateHtml('Пошук недоступний. Перевірте зв’язок.', '36px 20px', 'alert');
     }
 }
 
 async function searchGoodsByBarcode(barcode) {
+    cancelGoodsSearch();
+    const seq = _searchSeq;
+    _searchAbort = new AbortController();
     const clean = String(barcode || '').replace(/\s+/g, '');
     if (!clean) return;
 
@@ -131,11 +157,12 @@ async function searchGoodsByBarcode(barcode) {
     try {
         const u = currentUser ? encodeURIComponent(currentUser.id) : '';
         const url = `${apiBase}/goods?u=${u}&barcode=${encodeURIComponent(clean)}&t=${Date.now()}`;
-        const res = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store' }, APP_CONFIG.loadTimeoutMs);
+        const res = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store', signal: _searchAbort.signal }, APP_CONFIG.loadTimeoutMs);
         if (!res.ok) throw new Error('Помилка мережі');
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
 
+        if (seq !== _searchSeq) return;
         if (!items.length) {
             resultsContainer.innerHTML = emptyStateHtml(`Товар зі штрихкодом ${clean} не знайдено`, '36px 20px', 'search');
             showToast(`Не знайдено: ${clean}`, true);
@@ -144,6 +171,7 @@ async function searchGoodsByBarcode(barcode) {
         renderGoodsResults(items, '', true);
         showToast(`Знайдено: ${items[0].name || 'товар'}`, false);
     } catch (err) {
+        if (seq !== _searchSeq || err.name === 'AbortError') return;
         if (resultsContainer) resultsContainer.innerHTML = emptyStateHtml('Помилка пошуку', '36px 20px', 'alert');
         showToast('Помилка пошуку за штрихкодом', true);
     }
@@ -153,6 +181,17 @@ function renderGoodsResults(items, query, fromServer) {
     const container = document.getElementById('resultsContainer');
     if (!container) return;
 
+    _goodsResults = items.map(normalizeGoods).filter(item => item.type !== 'folder');
+    if (_goodsResults.length && query) rememberRecentSearch(query);
+    if (fromServer && currentUser) {
+        // сохраняем найденные товары отдельно от папок для поиска без сети
+        const merged = new Map(goodsData.map(item => [item.id || item.code, item]));
+        for (const item of _goodsResults) merged.set(item.id || item.code, item);
+        goodsData = Array.from(merged.values()); goodsIndexBuilt = false;
+        localDB.save('cachedGoods:' + currentUser.id, goodsData).catch(() => {});
+    }
+    items = _goodsResults;
+    _goodsShown = Math.min(GOODS_PAGE_LIMIT, items.length);
     if (!items.length) {
         container.innerHTML = emptyStateHtml(
             query ? `За запитом «${query}» нічого не знайдено` : 'Товар не знайдено',
@@ -181,7 +220,9 @@ function renderGoodsResults(items, query, fromServer) {
     if (typeof updateBackToTop === 'function') updateBackToTop();
 }
 
+// подключает поиск, историю запросов и действия главного экрана
 function initGoodsSearch() {
+    initRecentSearches();
     const input = document.getElementById('goodsSearch');
     const clearBtn = document.getElementById('searchClear');
     const numericBtn = document.getElementById('numericToggle');

@@ -51,12 +51,12 @@ const ASSETS = [
     './javascript/ui/focus.js', './javascript/ui/dialog.js',
     './javascript/ui/theme.js', './javascript/ui/backToTop.js',
     './javascript/ui/modalDrag.js',
-    './javascript/features/search.js', './javascript/features/goods-card.js',
+    './javascript/features/invoiceHistory.js', './javascript/features/recentSearches.js', './javascript/features/shipmentDraft.js', './javascript/features/search.js', './javascript/features/goods-card.js',
     './javascript/app/load.js', './javascript/app/sync.js',
     './javascript/app/submit.js', './javascript/app/clearCache.js',
     './javascript/app/events.js', './javascript/app/refresh.js',
     './javascript/app/reset.js', './javascript/app/init.js',
-    './javascript/scanner.js', './javascript/zbar.wasm', './javascript/zbar-wasm.js',
+    './javascript/ui/quantityKeyboard.js', './javascript/shipment.js', './javascript/scanner.js', './javascript/zbar.wasm', './javascript/zbar-wasm.js',
     './javascript/barcode-polyfill.js', './javascript/optimize.js'
 ];
 

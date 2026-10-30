@@ -75,6 +75,7 @@
             <span>Розмір шрифту</span>
             <span class="menu-value" id="fontScaleValue">A</span>
         </button>
+        <button id="invoiceHistoryBtn" class="menu-item"><span>Історія накладних</span><span class="menu-icon" aria-hidden="true">↗</span></button>
         <button id="clearCacheBtn" class="menu-item danger">
             <span>Очистити кеш</span>
             <span class="menu-icon">🗑</span>
@@ -153,7 +154,7 @@
             <div class="modal-body" id="shipmentBody"></div>
             <div class="modal-footer order-footer">
                 <div class="order-summary" id="shipmentSummary"></div>
-                <button class="action-btn btn-success" type="button" id="shipmentSendBtn" disabled>Додати</button>
+                <button class="action-btn btn-success" type="button" id="shipmentSendBtn" disabled>Додати в 1С</button>
             </div>
         </div>
     </div>
@@ -189,7 +190,11 @@
     <script src="javascript/ui/theme.js"></script>
     <script src="javascript/ui/backToTop.js"></script>
     <script src="javascript/ui/modalDrag.js"></script>
+    <script src="javascript/ui/quantityKeyboard.js"></script>
+    <script src="javascript/features/invoiceHistory.js"></script>
+    <script src="javascript/features/shipmentDraft.js"></script>
     <script src="javascript/shipment.js"></script>
+    <script src="javascript/features/recentSearches.js"></script>
     <script src="javascript/features/search.js"></script>
     <script src="javascript/features/goods-card.js"></script>
     <script src="javascript/app/load.js"></script>

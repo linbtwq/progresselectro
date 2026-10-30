@@ -31,6 +31,7 @@
 // состояние сканера
 // пока сканер открыт, эти переменные живут.
 // после closeBarcodeScanner всё обнуляется.
+let _scanSession = 0;
 let _videoStream = null;
 let _scanTimerId = null;
 let _barcodeDetector = null;
@@ -132,17 +133,24 @@ async function openBarcodeScanner() {
         });
     }
 
+    const session = ++_scanSession;
     overlay.classList.add('active');
 
     try {
         // запрашиваем камеру (facingMode: environment - задняя камера)
-        _videoStream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment' }
         });
 
+        if (session !== _scanSession) {
+            stream.getTracks().forEach(track => track.stop());
+            return;
+        }
+        _videoStream = stream;
         const video = document.getElementById('scannerVideo');
         video.srcObject = _videoStream;
         await video.play();
+        if (session !== _scanSession) return;
 
         // настраиваем детектор.
         // запрашиваем поддерживаемые форматы у самого класса,
@@ -159,6 +167,7 @@ async function openBarcodeScanner() {
 
         // пустой список форматов роняет конструктор.
         // поэтому проверяем и не запускаем скан если совсем ничего нет.
+        if (session !== _scanSession) return;
         if (!formats || formats.length === 0) {
             if (typeof showToast === 'function') {
                 showToast('Сканер штрих-кодів не підтримує жодного формату', true);
@@ -167,11 +176,13 @@ async function openBarcodeScanner() {
             return;
         }
 
+        if (session !== _scanSession) return;
         _barcodeDetector = new DetectorClass({ formats });
 
         startScanLoop();
 
     } catch (err) {
+        if (session !== _scanSession) return;
         console.error('Помилка камери:', err);
         if (typeof showToast === 'function') {
             showToast('Немає доступу до камери або вона зайнята іншим додатком', true);
@@ -189,6 +200,9 @@ async function openBarcodeScanner() {
 // ============================================================
 
 async function startScanLoop() {
+    _scanTimerId = null;
+    const session = _scanSession;
+    if (!_barcodeDetector || !document.getElementById('barcodeScannerOverlay')?.classList.contains('active')) return;
     const video = document.getElementById('scannerVideo');
     if (!video) return;
     if (video.ended) return;
@@ -206,6 +220,7 @@ async function startScanLoop() {
     _scanInFlight = true;
     try {
         const barcodes = await _barcodeDetector.detect(video);
+        if (session !== _scanSession) return;
 
         if (barcodes && barcodes.length > 0) {
             const code = barcodes[0].rawValue;
@@ -238,10 +253,10 @@ async function startScanLoop() {
     } catch (e) {
         // ошибка распознавания — просто продолжаем
     } finally {
-        _scanInFlight = false;
+        if (session === _scanSession) _scanInFlight = false;
     }
 
-    _scanTimerId = setTimeout(startScanLoop, 150);
+    if (session === _scanSession) _scanTimerId = setTimeout(startScanLoop, 150);
 }
 
 // ============================================================
@@ -253,6 +268,9 @@ async function startScanLoop() {
 // ============================================================
 
 function closeBarcodeScanner() {
+    ++_scanSession;
+    const video = document.getElementById('scannerVideo');
+    if (video) { video.pause(); video.srcObject = null; }
     if (_scanTimerId) {
         clearTimeout(_scanTimerId);
         _scanTimerId = null;

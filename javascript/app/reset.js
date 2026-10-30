@@ -18,6 +18,17 @@
 // ============================================================
 
 function resetAppState() {
+    // отменяем ожидающее подтверждение при выходе из учетной записи
+    if (shipmentReviewPending) document.getElementById('confirmDialogCancel')?.click();
+    document.getElementById('recentSearches')?.replaceChildren();
+    cancelGoodsLoad();
+    cancelGoodsSearch();
+    _goodsResults = [];
+    _goodsShown = 0;
+    closeShipmentModal(true);
+    document.getElementById('appWrapper')?.classList.remove('has-results');
+    const clearButton = document.getElementById('searchClear');
+    if (clearButton) clearButton.hidden = true;
     goodsData = [];
     goodsByCode.clear();
     goodsByBarcode.clear();

@@ -32,35 +32,6 @@ function goodsCardHtml(item, idx) {
                 ${stockHtml}
             </div>
 
-            <div class="goods-actions" style="grid-template-columns: 1fr;">
-                <button class="action-btn btn-primary" data-action="catalog" data-id="${id}">
-                    Каталог
-                </button>
-            </div>
         </div>
     `;
 }
-
-function handleGoodsCardClick(event) {
-    const btn = event.target.closest('[data-action]');
-    if (!btn) return;
-
-    const { action, id } = btn.dataset;
-    const item = findGoodsById(id);
-    if (!item) return;
-
-    if (action === 'catalog') {
-        // Открываем боковую панель с каталогом (drawer)
-        if (typeof openDrawer === 'function') {
-            openDrawer();
-        } else {
-            showToast('Каталог');
-        }
-    }
-}
-
-function findGoodsById(id) {
-    if (!id) return null;
-    buildGoodsIndex();
-    return goodsByCode.get(String(id)) || goodsData.find(g => String(g.id) === String(id)) || null;
-}   

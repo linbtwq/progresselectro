@@ -74,7 +74,11 @@ function initClearCacheButton() {
             const keepLocks = localStorage.getItem('pointLocks')
             const keepQueue = localStorage.getItem(QUEUE_LS_KEY)
 
+            // черновики и история пользователей сохраняются при очистке кеша
+            const workData = Object.keys(localStorage).filter(key => key.startsWith('shipmentDraft:') || key.startsWith('recentSearches:') || key.startsWith('invoiceHistory:'))
+                .map(key => [key, localStorage.getItem(key)]);
             localStorage.clear()
+            for (const [key, value] of workData) localStorage.setItem(key, value);
 
             if (keepQueue) localStorage.setItem(QUEUE_LS_KEY, keepQueue)
             if (keepUser) localStorage.setItem('currentUser', keepUser)

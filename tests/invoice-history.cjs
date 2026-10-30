@@ -1,0 +1,21 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const store=new Map(); const ctx=vm.createContext({currentUser:{id:'a'},readJsonSafe:(key,f)=>store.has(key)?JSON.parse(store.get(key)):f,localStorage:{setItem:(key,value)=>store.set(key,value)},fmt:String,showToast(){}});
+vm.runInContext(fs.readFileSync('javascript/features/invoiceHistory.js','utf8'),ctx);
+const payload={request_id:'one',items:[{code:'7',name:'товар',qty:2,price:5}]};
+ctx.saveInvoiceHistory(ctx.currentUser,payload,{doc_number:'001',sum:10,doc_date:'2026-10-30'},'');
+ctx.saveInvoiceHistory(ctx.currentUser,payload,{doc_number:'',sum:0},'');
+assert.equal(ctx.readInvoiceHistory().length,1); assert.equal(ctx.readInvoiceHistory()[0].total,10); assert.equal(ctx.readInvoiceHistory()[0].number,'001');
+ctx.saveInvoiceHistory(ctx.currentUser,{...payload,request_id:'two'},{doc_number:'002',sum:10},'помилка');
+assert.equal(ctx.readInvoiceHistory()[0].error,'помилка');
+ctx.currentUser={id:'b'};assert.equal(ctx.readInvoiceHistory().length,0);
+let resolveReview, sent=0;
+const overlay={inert:false};
+Object.assign(ctx,{document:{getElementById:()=>overlay,querySelector:()=>({})},navigator:{onLine:true},closeQuantityKeyboard(){},newRequestId:()=> 'id',shipmentDraftKey:()=> 'draft',showConfirmDialog:()=>new Promise(r=>resolveReview=r),submitDocument:async()=>{sent++},updateShipmentSummary(){}});
+vm.runInContext(fs.readFileSync('javascript/shipment.js','utf8'),ctx);
+ctx.updateShipmentSummary=()=>{};
+vm.runInContext("shipmentItems=[{code:'7',name:'товар',qty:2,price:5}]",ctx);
+(async()=>{
+ const cancelled=ctx.submitShipment();assert.equal(sent,0);assert.equal(overlay.inert,true);resolveReview(false);await cancelled;assert.equal(sent,0);assert.equal(overlay.inert,false);
+ const approved=ctx.submitShipment();const duplicate=ctx.submitShipment();await duplicate;assert.equal(sent,0);resolveReview(true);await approved;assert.equal(sent,1);
+ console.log('PASS: history deduplication, duplicate receipt metadata, posting error, user isolation, cancel review, confirmation gate, repeated click');
+})().catch(e=>{console.error(e);process.exitCode=1});
