@@ -8,7 +8,6 @@
     <link rel="icon" type="image/jpeg" href="images.jpg">
     <link rel="apple-touch-icon" href="images.jpg">
 
-    <!-- определяем возможности устройства до отрисовки чтобы не мигало -->
     <script>
     (function () {
         try {
@@ -25,7 +24,6 @@
     })();
     </script>
 
-    <!-- восстанавливаем тему и размер шрифта до отрисовки -->
     <script>
     (function () {
         try {
@@ -45,7 +43,7 @@
 <body>
     <div id="topProgress" class="top-progress"></div>
 
-    <!-- экран входа по пин-коду -->
+    <!-- Экран входа -->
     <div id="authOverlay" class="auth-overlay">
         <div class="auth-box">
             <div class="auth-logo">
@@ -59,7 +57,7 @@
         </div>
     </div>
 
-    <!-- шапка с профилем и настройками -->
+    <!-- Верхняя панель с профилем и настройками -->
     <div class="top-bar">
         <div id="userBadge" class="user-badge"></div>
         <button id="settingsBtn" class="settings-btn" aria-label="Налаштування">
@@ -67,7 +65,7 @@
         </button>
     </div>
 
-    <!-- выпадающее меню настроек -->
+    <!-- Меню настроек -->
     <div id="settingsMenu" class="settings-menu">
         <button id="themeToggle" class="menu-item">
             <span>Темна тема</span>
@@ -83,11 +81,8 @@
         </button>
     </div>
 
-    <!-- главная обертка приложения -->
     <div class="app-wrapper" id="appWrapper">
-
         <div class="top-area" id="topArea">
-            <!-- экран приветствия -->
             <div class="welcome-screen" id="welcomeScreen">
                 <div class="welcome-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
@@ -96,7 +91,6 @@
                 <p>Введіть назву, код або скористайтеся сканером</p>
             </div>
 
-            <!-- поле поиска -->
             <div class="search-container" id="searchContainer">
                 <div class="search-box">
                     <span class="search-icon">
@@ -108,24 +102,28 @@
                     </button>
                     <button type="button" class="numeric-toggle" id="numericToggle" aria-label="Цифрова клавіатура">123</button>
                 </div>
+                
+                <button type="button" class="btn-add-main" id="mainAddBtn">
+                    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Додати
+                </button>
             </div>
         </div>
 
-        <!-- контейнер результатов -->
         <div class="results-container" id="resultsContainer"></div>
     </div>
 
-    <!-- кнопка возврата к началу списка, показывается при скролле -->
+    <!-- Кнопка наверх -->
     <button id="backToTop" class="back-to-top" type="button" aria-label="Догори">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>
     </button>
 
-    <!-- плавающая кнопка сканера -->
+    <!-- ПЛАВАЮЩАЯ КНОПКА СКАНЕРА (ТА САМАЯ КРАСНАЯ) -->
     <button class="fab-scanner" id="scanBtn" aria-label="Сканувати штрихкод">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="7" y2="12.01"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="14" y1="9" x2="14" y2="15"/><line x1="17" y1="12" x2="17" y2="12.01"/></svg>
     </button>
 
-    <!-- универсальный диалог подтверждения, используется dialog.js -->
+    <!-- Универсальный диалог -->
     <div id="confirmDialogOverlay" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
@@ -142,13 +140,23 @@
         </div>
     </div>
 
-    <!--
-        заглушка под будущие модалки
-        когда будет реализована карточка товара или оформление заказа,
-        добавляй сюда разметку с class="modal-overlay" и id,
-        а также обработчик в javascript/ui/focus.js в closeTopModal
-        и в javascript/ui/modalDrag.js в closeModalByOverlay
-    -->
+    <!-- МОДАЛКА ДОДАТИ -->
+    <div class="modal-overlay" id="shipmentOverlay" style="z-index: 1050;">
+        <div class="modal-box assort-box">
+            <div class="modal-header">
+                <div class="assort-head">
+                    <h3>Додати</h3>
+                    <div class="assort-sub" id="shipmentSub"></div>
+                </div>
+                <button class="modal-close" type="button" aria-label="Закрити">✕</button>
+            </div>
+            <div class="modal-body" id="shipmentBody"></div>
+            <div class="modal-footer order-footer">
+                <div class="order-summary" id="shipmentSummary"></div>
+                <button class="action-btn btn-success" type="button" id="shipmentSendBtn" disabled>Додати</button>
+            </div>
+        </div>
+    </div>
 
     <div id="toast" class="toast"><span id="toastMessage">Успішно!</span></div>
 
@@ -162,7 +170,7 @@
 
     <div id="appVersion" class="app-version"></div>
 
-    <!-- скрипты -->
+    <!-- СКРИПТЫ -->
     <script src="version.js"></script>
     <script src="javascript/config.js"></script>
     <script src="javascript/auth.js"></script>
@@ -181,6 +189,7 @@
     <script src="javascript/ui/theme.js"></script>
     <script src="javascript/ui/backToTop.js"></script>
     <script src="javascript/ui/modalDrag.js"></script>
+    <script src="javascript/shipment.js"></script>
     <script src="javascript/features/search.js"></script>
     <script src="javascript/features/goods-card.js"></script>
     <script src="javascript/app/load.js"></script>

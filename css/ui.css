@@ -134,7 +134,7 @@
     color: var(--primary);
 }
 
-/* плавающая кнопка сканера штрихкодов */
+/* ПЛАВАЮЩАЯ КНОПКА СКАНЕРА */
 .fab-scanner {
     position: fixed;
     bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px));
@@ -148,7 +148,7 @@
     display: grid;
     place-items: center;
     box-shadow: 0 8px 24px rgba(227, 24, 29, 0.4);
-    z-index: 900;
+    z-index: 1060; /* <--- ПОДНЯЛИ ВЫШЕ МОДАЛКИ (у модалки 1050) */
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -206,14 +206,11 @@
 /* всплывающие уведомления (тосты) */
 .toast {
     position: fixed;
-    /* оставляем финальную позицию видимости здесь */
     top: max(24px, env(safe-area-inset-top)); 
     left: 50%;
-    /* прячем его вверх на 200% от его собственной высоты и делаем прозрачным */
     transform: translate(-50%, -200%); 
     opacity: 0;
     pointer-events: none;
-    
     background: var(--success);
     color: #fff;
     padding: 12px 24px;
@@ -225,20 +222,10 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    max-width: 90vw; /* чтобы длинный текст не вылезал за края экрана */
-    
-    /* анимируем transform и opacity (это плавнее и быстрее, чем top) */
+    max-width: 90vw;
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
 }
-
-/* класс .show возвращает его на экран */
-.toast.show { 
-    transform: translate(-50%, 0); 
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.toast.error { background: var(--danger); }
+.toast.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
 .toast.error { background: var(--danger); }
 
 /* экран авторизации по пин-коду */
@@ -308,10 +295,7 @@ body.dark-theme .auth-overlay { background: #0f1115; }
     cursor: pointer;
     box-shadow: 0 4px 0 var(--primary-strong);
 }
-.auth-box .action-btn:active {
-    transform: translateY(4px);
-    box-shadow: none;
-}
+.auth-box .action-btn:active { transform: translateY(4px); box-shadow: none; }
 
 /* окно сканера штрихкодов */
 #barcodeScannerOverlay {
@@ -425,10 +409,5 @@ body.dark-theme .auth-overlay { background: #0f1115; }
     transform: translateY(0);
     transition: opacity 0.2s ease, visibility 0s, transform 0.2s ease;
 }
-.back-to-top svg {
-    width: 22px;
-    height: 22px;
-}
-.back-to-top:active {
-    transform: scale(0.9);
-}
+.back-to-top svg { width: 22px; height: 22px; }
+.back-to-top:active { transform: scale(0.9); }

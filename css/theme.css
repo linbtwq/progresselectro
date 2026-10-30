@@ -69,10 +69,9 @@ body.dark-theme, html.dark-theme-boot {
     --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.6);
 }
 
-/* применяем основной шрифт ко всем элементам */
 *, *::before, *::after { font-family: var(--font-ui); }
 
-/* карточка товара */
+/* карточка товара в поиске */
 .goods-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -88,13 +87,11 @@ body.dark-theme, html.dark-theme-boot {
     position: relative;
 }
 
-/* анимация появления карточки */
 @keyframes goodsEnter {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* шапка карточки с названием и ценой */
 .goods-head {
     display: flex;
     align-items: flex-start;
@@ -111,7 +108,6 @@ body.dark-theme, html.dark-theme-boot {
     overflow-wrap: anywhere;
 }
 
-/* блок с ценой справа сверху */
 .goods-price-block {
     flex: 0 0 auto;
     text-align: right;
@@ -130,11 +126,8 @@ body.dark-theme, html.dark-theme-boot {
     font-weight: 800;
     line-height: 1.1;
 }
-body.dark-theme .goods-price-block .price-val {
-    color: var(--accent);
-}
+body.dark-theme .goods-price-block .price-val { color: var(--accent); }
 
-/* метаданные (код, штрихкод, остаток) */
 .goods-meta {
     display: flex;
     flex-wrap: wrap;
@@ -153,7 +146,6 @@ body.dark-theme .goods-price-block .price-val {
 .goods-code::before { content: 'код: '; }
 .goods-barcode::before { content: 'штрихкод: '; }
 
-/* бейдж остатка товара */
 .goods-stock {
     margin-left: auto;
     padding: 4px 10px;
@@ -164,7 +156,6 @@ body.dark-theme .goods-price-block .price-val {
 .goods-stock.ok { color: var(--success); background: var(--success-soft); }
 .goods-stock.zero { color: var(--danger); background: var(--danger-soft); }
 
-/* кнопки действий в карточке */
 .goods-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -199,7 +190,6 @@ body.dark-theme .goods-price-block .price-val {
     background: var(--primary-strong);
 }
 
-/* пустой экран если ничего не найдено */
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -218,3 +208,228 @@ body.dark-theme .goods-price-block .price-val {
 }
 .empty-icon { width: 48px; height: 48px; opacity: 0.4; }
 .empty-text { font-size: 1rem; line-height: 1.5; font-weight: 500; }
+
+/* ============================================================
+   КНОПКА И МОДАЛКА "ДОДАТИ" (ОБНОВЛЕННЫЙ ДИЗАЙН)
+   ============================================================ */
+
+.btn-add-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 16px 20px;
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(227, 24, 29, 0.25);
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.btn-add-main:active { transform: scale(0.97); background: var(--primary-strong); }
+.btn-add-main .ui-icon { width: 20px; height: 20px; }
+
+/* Строка поиска внутри модалки */
+#shipmentOverlay .assort-top {
+    margin-bottom: 16px;
+}
+#shipmentOverlay .assort-search-wrap {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+#shipmentOverlay .assort-search {
+    flex: 1;
+    width: 100%;
+    min-height: 48px;
+    padding: 0 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-2);
+    color: var(--text-heading);
+    font-size: 16px;
+    outline: none;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    transition: all 0.2s;
+}
+#shipmentOverlay .assort-search:focus {
+    border-color: var(--primary);
+    background: var(--surface-solid);
+    box-shadow: 0 0 0 4px var(--primary-soft);
+}
+#shipmentOverlay .dg-scan-btn {
+    flex: 0 0 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-heading);
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+#shipmentOverlay .dg-scan-btn:active {
+    background: var(--surface-3);
+}
+#shipmentOverlay .dg-scan-btn.numeric-toggle.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+/* Карточка товара внутри модалки */
+#shipmentGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#shipmentGrid .assort-row {
+    padding: 16px;
+    border-radius: 16px;
+    background: var(--surface-solid);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    transition: border-color 0.2s;
+}
+
+#shipmentGrid .assort-row.picked {
+    border-color: var(--success);
+    background: var(--success-soft);
+}
+
+#shipmentGrid .assort-row-head {
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+#shipmentGrid .assort-tile-name {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-heading);
+    line-height: 1.3;
+}
+
+/* Сетка */
+.shipment-row-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto 1.1fr;
+    gap: 12px;
+    align-items: end;
+}
+
+.shipment-row-fields label {
+    display: block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+}
+
+/* Колонки склада и цены */
+.shipment-row-fields .assort-field-static {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+/* Колонка с кнопками и инпутом (Степпер) */
+.shipment-row-fields .qty {
+    display: flex;
+    align-items: center;
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 4px;
+    height: 44px;
+    gap: 4px;
+}
+
+.shipment-row-fields .qty-btn {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border: none;
+    background: var(--surface-solid);
+    color: var(--text-heading);
+    font-size: 1.3rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.1s;
+}
+.shipment-row-fields .qty-btn:active { 
+    background: var(--surface-3); 
+    transform: scale(0.92);
+}
+
+.shipment-row-fields .qty-input {
+    width: 40px;
+    height: 36px;
+    flex: 0 0 40px;
+    border: none !important;
+    background: transparent !important;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text-heading);
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Колонка суммы */
+.shipment-row-fields .assort-row-total {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-weight: 800;
+    color: var(--text-heading);
+    font-size: 1.05rem;
+}
+
+/* На мобилках делаем 2 колонки */
+@media (max-width: 480px) {
+    .shipment-row-fields {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px 8px;
+    }
+    .shipment-row-fields > div:nth-child(3),
+    .shipment-row-fields > div:nth-child(4) {
+        margin-top: 4px;
+    }
+}
+
+/* Итоговая полоса внизу */
+#shipmentSummary {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+#shipmentSummary b {
+    color: var(--text-heading);
+    font-weight: 800;
+}

@@ -186,6 +186,7 @@ function initGoodsSearch() {
     const clearBtn = document.getElementById('searchClear');
     const numericBtn = document.getElementById('numericToggle');
     const scanBtn = document.getElementById('scanBtn');
+    const mainAddBtn = document.getElementById('mainAddBtn');
 
     if (input) {
         input.addEventListener('input', handleGoodsSearchInput);
@@ -223,6 +224,14 @@ function initGoodsSearch() {
     if (scanBtn) {
         scanBtn.addEventListener('click', () => {
             if (typeof openBarcodeScanner === 'function') openBarcodeScanner();
+        });
+    }
+
+        if (mainAddBtn) {
+        mainAddBtn.addEventListener('click', () => {
+            if (typeof openShipmentModal === 'function') {
+                openShipmentModal();
+            }
         });
     }
 }

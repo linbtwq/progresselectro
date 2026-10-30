@@ -246,3 +246,94 @@ body {
         align-content: start;
     }
 }
+
+/* Сетка для модалки отгрузки (4 колонки) */
+.shipment-row-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto 1fr;
+    gap: 12px;
+    align-items: end;
+}
+
+/* На мобилках делаем 2 колонки, чтобы не сжималось */
+@media (max-width: 480px) {
+    .shipment-row-fields {
+        grid-template-columns: 1fr 1fr;
+    }
+    .shipment-row-fields > div:nth-child(3),
+    .shipment-row-fields > div:nth-child(4) {
+        margin-top: 8px;
+    }
+}
+
+/* Выравнивание заголовков колонок */
+.shipment-row-fields label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: block;
+}
+
+/* Оформление поля ввода количества */
+.shipment-row-fields .qty {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 2px;
+}
+
+.shipment-row-fields .qty-btn {
+    width: 32px;
+    height: 36px;
+    flex: 0 0 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-heading);
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.shipment-row-fields .qty-btn:active {
+    background: var(--surface-3);
+}
+
+.shipment-row-fields .qty-input {
+    width: 40px;
+    height: 36px;
+    flex: 0 0 40px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-heading);
+    outline: none;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Сумма справа */
+.shipment-row-fields .assort-row-total {
+    font-weight: 800;
+    color: var(--text-heading);
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* Итоги в подвале */
+.order-summary {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+.order-summary b {
+    color: var(--text-heading);
+}
