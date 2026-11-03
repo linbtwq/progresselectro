@@ -7,8 +7,8 @@ function renderProductRow(cfg) {
     const price = Number(cfg.price) || 0;
 
     // Шапка строки (название и цена)
-    const headPriceHtml = cfg.showHeadPrice !== false 
-        ? `<span class="assort-row-price">Ціна: <strong>${fmt(price)} ₴</strong></span>` 
+    const headPriceHtml = cfg.showHeadPrice !== false
+        ? `<span class="assort-row-price">Ціна: <strong>${money(price)} ₴</strong></span>`
         : '';
 
     // Универсальный рендер колонки
@@ -27,9 +27,9 @@ function renderProductRow(cfg) {
                 </div>
             `;
         } else if (col.isStatic) {
-            const style = col.isLarge ? 'style="font-size: 1.2rem; font-weight: 800; color: var(--text-heading);"' : '';
+            // размер и начертание задаются общим стилем карточки
             const cls = col.className || 'assort-field-static';
-            contentHtml = `<div class="${cls}" ${style}>${col.value}</div>`;
+            contentHtml = `<div class="${cls}">${col.value}</div>`;
         } else if (col.isTotal) {
             // Добавляем оба класса (assort-row-total и row-total) для совместимости со старыми обработчиками
             contentHtml = `<div class="assort-row-total row-total">${col.value}</div>`;

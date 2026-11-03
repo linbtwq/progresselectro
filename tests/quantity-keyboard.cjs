@@ -1,7 +1,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const elements=new Map();
 const el=id=>{if(!elements.has(id))elements.set(id,{classList:{add(){},remove(){},toggle(){}},focus(){},disabled:false});return elements.get(id)};
-const ctx=vm.createContext({document:{getElementById:el,querySelector:el},fmt:String,shipmentItems:[],updateShipmentRow(){},updateShipmentSummary(){}});
+const ctx=vm.createContext({document:{getElementById:el,querySelector:el},fmt:String,money:String,shipmentItems:[],updateShipmentRow(){},updateShipmentSummary(){}});
 vm.runInContext(fs.readFileSync('javascript/ui/quantityKeyboard.js','utf8'),ctx);
 assert.equal(ctx.quantityKeyValue('12','3'), '123');
 assert.equal(ctx.quantityKeyValue('12','3',true), '3');

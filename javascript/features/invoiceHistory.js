@@ -43,17 +43,17 @@ function initInvoiceHistory() {
 // показывает номер, сумму, статус проведения и раскрываемый состав каждой накладной
 function openInvoiceHistory() {
     if (!currentUser) return;
+    closeSettingsPanel();
     rememberFocus();
-    document.getElementById('settingsMenu')?.classList.remove('active');
     const list = readInvoiceHistory();
     const body = document.getElementById('invoiceHistoryBody');
     body.innerHTML = list.length ? list.map(record => `<article class="invoice-card">
-        <div class="invoice-heading"><strong>${record.number ? '№ ' + escapeHtml(record.number) : 'Документ без номера'}</strong><b>${fmt(record.total)} ₴</b></div>
-        <p class="history-note">${escapeHtml(record.date || new Date(record.savedAt).toLocaleString('uk-UA'))}</p>
+        <div class="invoice-heading"><strong>${record.number ? '№ ' + escapeHtml(record.number) : 'Документ без номера'}</strong><b>${money(record.total)} ₴</b></div>
+        <p class="history-note">${escapeHtml(formatInvoiceDate(record.date, record.savedAt))}</p>
         <span class="invoice-status ${record.error ? 'warning' : ''}">${record.error ? 'Створено · не проведено' : record.number ? 'Проведено' : 'Підтверджено сервером'}</span>
         ${record.error ? `<p class="invoice-error">${escapeHtml(record.error)}</p>` : ''}
-        <details><summary>Надісланий склад · ${record.items.length} поз.</summary><ul>${record.items.map(item => `<li><span>${escapeHtml(item.name)}<small>${escapeHtml(item.code)}</small></span><b>${fmt(item.qty)} × ${fmt(item.price)} ₴</b></li>`).join('')}</ul></details>
-    </article>`).join('') : emptyStateHtml('Тут з’являться накладні, створені з цього пристрою', '24px 12px', 'box');
+        <details><summary>Надісланий склад · ${record.items.length} поз.</summary><ul>${record.items.map(item => `<li><span>${escapeHtml(item.name)}<small>${escapeHtml(item.code)}</small></span><b>${fmt(item.qty)} × ${money(item.price)} ₴</b></li>`).join('')}</ul></details>
+    </article>`).join('') : emptyStateHtml('Тут з’являться накладні, створені з цього пристрою', '24px 12px', 'history');
     const overlay = document.getElementById('invoiceHistoryOverlay');
     overlay.classList.add('active'); autofocusModal(overlay);
 }
@@ -66,5 +66,13 @@ function closeInvoiceHistory() {
 
 // формирует проверочный список из снимка позиций перед отправкой
 function shipmentReviewDetails(items) {
-    return items.map(item => `${item.name} · ${fmt(item.qty)} × ${fmt(item.price)} ₴ = ${fmt(item.qty * item.price)} ₴`);
+    return items.map(item => `${item.name} · ${fmt(item.qty)} × ${money(item.price)} ₴ = ${money(item.qty * item.price)} ₴`);
+}
+
+// передает визуальному результату только подтвержденные сервером поля документа
+function shipmentDocumentResult(response, items, error) {
+    const serverTotal = response?.sum;
+    return {number:String(response?.doc_number || ''), date:String(response?.doc_date || ''), count:items.length,
+        total:serverTotal != null && Number.isFinite(Number(serverTotal)) ? Number(serverTotal) : items.reduce((sum,item)=>sum+item.qty*item.price,0),
+        error:String(error || '')};
 }

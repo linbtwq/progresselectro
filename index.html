@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#E3181D">
+    <meta name="theme-color" content="#F4F5F7">
     <title>Прогрес Електро</title>
     <link rel="icon" type="image/jpeg" href="images.jpg">
     <link rel="apple-touch-icon" href="images.jpg">
@@ -37,7 +37,6 @@
     </script>
 
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="css/theme.css">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -58,37 +57,47 @@
     </div>
 
     <!-- Верхняя панель с профилем и настройками -->
-    <div class="top-bar">
-        <div id="userBadge" class="user-badge"></div>
-        <button id="settingsBtn" class="settings-btn" aria-label="Налаштування">
+    <header class="top-bar">
+        <div class="app-brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/></svg></span><span>Прогрес<small>Електро</small></span></div>
+        <div class="header-actions"><div id="userBadge" class="user-badge"></div><div id="connectionStatus" class="connection-status" title="Натисніть для оновлення">
+        <div class="status-dot"></div>
+        <div class="status-content">
+            <span class="status-text">Перевірка зв'язку...</span>
+            <span class="status-time" id="statusTime"></span>
+        </div>
+    </div><button id="settingsBtn" class="settings-btn" aria-expanded="false" aria-controls="settingsMenu" aria-haspopup="dialog" aria-label="Налаштування">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
-    </div>
+        </button></div>
+    </header>
 
     <!-- Меню настроек -->
-    <div id="settingsMenu" class="settings-menu">
+    <div id="settingsMenu" class="modal-overlay settings-overlay">
+        <section class="modal-box settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+            <header class="modal-header"><h3 id="settingsTitle">Налаштування</h3><button type="button" class="modal-close" id="settingsClose" aria-label="Закрити налаштування">✕</button></header>
+            <div class="modal-body"><p class="settings-section">Оформлення</p>
         <button id="themeToggle" class="menu-item">
             <span>Темна тема</span>
-            <span class="menu-icon" id="themeIcon">🌙</span>
+            <span class="menu-icon theme-switch" id="themeIcon" aria-hidden="true"></span>
         </button>
         <button id="fontScaleBtn" class="menu-item">
             <span>Розмір шрифту</span>
             <span class="menu-value" id="fontScaleValue">A</span>
         </button>
-        <button id="invoiceHistoryBtn" class="menu-item"><span>Історія накладних</span><span class="menu-icon" aria-hidden="true">↗</span></button>
+        <p class="settings-section">Документи та дані</p>
+        <button id="invoiceHistoryBtn" class="menu-item"><span>Історія накладних</span><span class="menu-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5v18h14V3h-3M8 3v4h8V3H8ZM8 12h8M8 16h5"/></svg></span></button>
         <button id="clearCacheBtn" class="menu-item danger">
             <span>Очистити кеш</span>
-            <span class="menu-icon">🗑</span>
+            <span class="menu-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg></span>
         </button>
+            </div>
+        </section>
     </div>
 
     <div class="app-wrapper" id="appWrapper">
         <div class="top-area" id="topArea">
             <div class="welcome-screen" id="welcomeScreen">
-                <div class="welcome-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                </div>
-                <h2>Пошук товарів</h2>
+                <span class="welcome-kicker">Товари та накладні</span>
+                <h1>Пошук товарів</h1>
                 <p>Введіть назву, код або скористайтеся сканером</p>
             </div>
 
@@ -97,7 +106,7 @@
                     <span class="search-icon">
                         <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
                     </span>
-                    <input type="text" id="goodsSearch" placeholder="Введіть код, назву або штрихкод..." autocomplete="off">
+                    <input type="text" id="goodsSearch" placeholder="Назва, код або штрихкод" autocomplete="off">
                     <button type="button" class="search-clear" id="searchClear" aria-label="Очистити" hidden>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                     </button>
@@ -160,14 +169,6 @@
     </div>
 
     <div id="toast" class="toast"><span id="toastMessage">Успішно!</span></div>
-
-    <div id="connectionStatus" class="connection-status" title="Натисніть для оновлення">
-        <div class="status-dot"></div>
-        <div class="status-content">
-            <span class="status-text">Перевірка зв'язку...</span>
-            <span class="status-time" id="statusTime"></span>
-        </div>
-    </div>
 
     <div id="appVersion" class="app-version"></div>
 

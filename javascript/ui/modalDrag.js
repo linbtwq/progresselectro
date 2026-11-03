@@ -46,7 +46,8 @@ function closeModalByOverlay(overlay) {
         if (cancelBtn) { cancelBtn.click(); return }
     }
 
-    if (id === 'invoiceHistoryOverlay') closeInvoiceHistory()
+    if (id === 'settingsMenu') closeSettingsPanel()
+    else if (id === 'invoiceHistoryOverlay') closeInvoiceHistory()
     else if (id === 'quantityKeyboardOverlay') closeQuantityKeyboard()
     else if (id === 'barcodeScannerOverlay') closeBarcodeScanner()
     else if (id === 'modalOverlay' && typeof closeModal === 'function') closeModal()

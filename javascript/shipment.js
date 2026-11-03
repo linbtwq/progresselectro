@@ -119,12 +119,12 @@ function renderShipmentBody() {
 
     body.innerHTML = `
         <div class="assort-top">
-            <div class="assort-search-wrap" style="display: flex; gap: 8px;">
+            <div class="assort-search-wrap" >
                 <input type="search" class="assort-search" id="shipmentSearch"
                        placeholder="Пошук товару..." autocomplete="off"
                        value="${escapeHtml(shipmentSearchQuery)}"
                        inputmode="${shipmentSearchNumeric ? 'numeric' : 'text'}"
-                       style="flex: 1;">
+>
                 <button type="button" class="dg-scan-btn numeric-toggle ${shipmentSearchNumeric ? 'active' : ''}"
                         id="shipmentNumericBtn"
                         aria-label="Цифрова клавіатура"
@@ -134,7 +134,7 @@ function renderShipmentBody() {
             </div>
             <button type="button" id="shipmentSelectedOnly" class="selected-filter" aria-pressed="false">Тільки вибрані <span id="shipmentSelectedCount">0</span></button>
         </div>
-        <div id="shipmentGrid" class="assort-grid" style="margin-top:14px;">
+        <div id="shipmentGrid" class="assort-grid" >
             ${renderShipmentRows()}
         </div>
         <div id="shipmentNoMatch" class="empty-state" style="display:none; margin-top:14px;">Нічого не знайдено</div>
@@ -242,7 +242,7 @@ function renderShipmentRows() {
             idx: i, code: it.code, name: it.name, price: it.price, showHeadPrice: false,
             dataAttr: 'data-shipment-row', fieldsClass: 'shipment-row-fields',
             col1: { label: 'На складі', value: fmt(it.maxQty), isStatic: true, isLarge: true },
-            col2: { label: 'Ціна', value: `${fmt(it.price)} ₴`, isStatic: true },
+            col2: { label: 'Ціна', value: `${money(it.price)} ₴`, isStatic: true },
             col3: { label: 'Кількість', isInput: true, inputValue: it.qty,
                 inputAttrs: 'readonly inputmode="none" aria-label="Кількість товару" aria-haspopup="dialog"' },
             col4: { label: 'Сума', value: '0 ₴', isTotal: true }
@@ -254,7 +254,7 @@ function updateShipmentRow(row, idx) {
     const it = shipmentItems[idx]
     if (!it) return
     const totalEl = row.querySelector('.assort-row-total')
-    if (totalEl) totalEl.textContent = `${fmt(it.qty * it.price)} ₴`
+    if (totalEl) totalEl.textContent = `${money(it.qty * it.price)} ₴`
     row.classList.toggle('picked', it.qty > 0)
 }
 
@@ -276,7 +276,7 @@ function updateShipmentSummary() {
         btn.disabled = true
         return
     }
-    summary.innerHTML = `Додаємо: <b>${count} поз.</b> на <b>${fmt(sum)} ₴</b>`
+    summary.innerHTML = `<span class="summary-caption">Разом<small>${count} поз.</small></span><b>${money(sum)} ₴</b>`
     btn.disabled = shipmentSending
 }
 
@@ -319,8 +319,8 @@ async function submitShipment() {
     let confirmed = false;
     try {
         confirmed = await showConfirmDialog({title:'Перевірте накладну',
-            message: 'Позицій: ' + items.length + ' · Разом: ' + fmt(total) + ' ₴',
-            details: shipmentReviewDetails(items), okText:'Відправити в 1С', cancelText:'Редагувати'});
+            message: 'Вибрано позицій: ' + items.length,
+            receiptItems: items, receiptTotal: total, okText:'Відправити в 1С', cancelText:'Редагувати'});
     } finally { shipmentReviewPending = false; overlay.inert = false; }
     if (!confirmed && currentUser === reviewUser) document.getElementById('shipmentSendBtn')?.focus?.();
     if (!confirmed || currentUser !== reviewUser || _shipmentLoadSeq !== reviewSeq) return;
@@ -354,7 +354,7 @@ async function submitShipment() {
             closeShipmentModal();
             showConfirmDialog({title: conductError ? 'Накладну створено, але не проведено' : 'Документ створено',
                 message: conductError ? 'Не створюйте накладну повторно. Потрібно перевірити її в обліку.' : 'Сервер підтвердив створення накладної.',
-                details: shipmentResultDetails(response, items, conductError), okText: 'Зрозуміло', cancelText: 'Закрити'});
+                documentResult: shipmentDocumentResult(response, items, conductError), okText: 'Зрозуміло', cancelText: 'Закрити'});
         }
     });
 

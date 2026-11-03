@@ -61,23 +61,22 @@ function isStubResponse(data) {
 // иконка выбирается по имени
 // ============================================================
 
-function emptyStateHtml(text, padding, icon) {
-    const pad = padding || '36px 20px'
-
-    const paths = {
-        search: '<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/>',
-        box: '<path d="M3.5 7h6l2 2h9v9.5a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 3.5 18.5V7Z"/><path d="M3.5 9h17"/>',
-        alert: '<circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>'
-    }
-
-    const svg = paths[icon] || paths.box
-
-    return `<div class="empty-state" style="padding:${pad};">
-        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${svg}</svg>
-        <span class="empty-text">${escapeHtml(text)}</span>
-    </div>`
+// оформляет пустое состояние с отдельной иллюстрацией и пояснением
+function emptyStateHtml(text, padding, icon = 'box') {
+    const pad = padding || '36px 20px';
+    const pictures = {
+        search: '<circle cx="31" cy="30" r="12"/><path d="m40 39 12 12M27 30h8"/>',
+        box: '<path d="m16 27 20-10 20 10v23L36 60 16 50V27Zm0 0 20 10 20-10M36 37v23M26 22l20 10"/>',
+        history: '<rect x="21" y="14" width="34" height="46" rx="5"/><path d="M30 26h16M30 34h12M30 42h8"/><circle cx="51" cy="52" r="11"/><path d="M51 46v7l4 2"/>',
+        alert: '<path d="m36 17 23 39H13l23-39Z"/><path d="M36 30v12m0 7v1"/>',
+        offline: '<path d="M17 29a29 29 0 0 1 38 0M24 38a18 18 0 0 1 24 0M31 47a8 8 0 0 1 10 0M36 55h.01M15 14l43 44"/>'
+    };
+    const titles = {search:'Нічого не знайдено',box:'Поки що порожньо',history:'Історія починається тут',alert:'Не вдалося завантажити',offline:'Немає зв’язку'};
+    const kind = pictures[icon] ? icon : 'box';
+    return '<div class="empty-state empty-' + kind + '" style="padding:' + pad + '">' +
+        '<svg class="empty-illustration" viewBox="0 0 72 72" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle class="empty-halo" cx="36" cy="36" r="34" stroke="none"/>' + pictures[kind] + '</svg>' +
+        '<strong class="empty-title">' + titles[kind] + '</strong><span class="empty-text">' + escapeHtml(text) + '</span></div>';
 }
-
 
 // ============================================================
 // блок 4. контрол количества

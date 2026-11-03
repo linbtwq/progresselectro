@@ -6,6 +6,7 @@ let _searchAbort = null;
 const GOODS_PAGE_LIMIT = APP_CONFIG.pageSize || 60;
 let _goodsResults = [];
 let _goodsShown = 0;
+let _goodsQuery = '';
 function cancelGoodsSearch() {
     clearTimeout(_searchTimer);
     ++_searchSeq;
@@ -17,7 +18,7 @@ function showMoreGoods() {
     if (!container || _goodsShown >= _goodsResults.length) return;
     container.querySelector('.show-more-wrap')?.remove();
     const end = Math.min(_goodsShown + GOODS_PAGE_LIMIT, _goodsResults.length);
-    container.insertAdjacentHTML('beforeend', _goodsResults.slice(_goodsShown, end).map((item, i) => goodsCardHtml(item, i)).join(''));
+    container.insertAdjacentHTML('beforeend', _goodsResults.slice(_goodsShown, end).map((item, i) => goodsCardHtml(item, i, _goodsQuery)).join(''));
     _goodsShown = end;
     if (end < _goodsResults.length) container.insertAdjacentHTML('beforeend',
         '<div class="show-more-wrap"><div class="show-more-progress">' + end + ' із ' + _goodsResults.length + '</div><button class="action-btn btn-secondary" data-action="more">Показати ще</button></div>');
@@ -108,14 +109,14 @@ async function runGoodsSearch(query) {
     try {
         const items = await remoteSearchGoods(query, _searchAbort.signal);
         if (seq !== _searchSeq) return;
-        renderGoodsResults(items.items, query, true);
+        renderGoodsResults(items.items, query, true, items.truncated);
         if (items.truncated) resultsContainer.insertAdjacentHTML('beforeend', '<p class="search-note">Показано перші 50 товарів. Уточніть пошук.</p>');
     } catch (err) {
         if (err.name === 'AbortError') return;
         if (seq !== _searchSeq) return;
         const cached = localSearchGoods(query);
         if (cached.length) { renderGoodsResults(cached, query, false); showToast('Офлайн: результати зі збережених товарів'); }
-        else resultsContainer.innerHTML = emptyStateHtml('Пошук недоступний. Перевірте зв’язок.', '36px 20px', 'alert');
+        else resultsContainer.innerHTML = emptyStateHtml('Перевірте інтернет і повторіть пошук.', '36px 20px', 'offline');
     }
 }
 
@@ -177,7 +178,8 @@ async function searchGoodsByBarcode(barcode) {
     }
 }
 
-function renderGoodsResults(items, query, fromServer) {
+function renderGoodsResults(items, query, fromServer, truncated = false) {
+    _goodsQuery = query || '';
     const container = document.getElementById('resultsContainer');
     if (!container) return;
 
@@ -193,8 +195,8 @@ function renderGoodsResults(items, query, fromServer) {
     items = _goodsResults;
     _goodsShown = Math.min(GOODS_PAGE_LIMIT, items.length);
     if (!items.length) {
-        container.innerHTML = emptyStateHtml(
-            query ? `За запитом «${query}» нічого не знайдено` : 'Товар не знайдено',
+        container.innerHTML = resultCountHtml(0) + emptyStateHtml(
+            query ? `Немає збігів для «${query}». Спробуйте іншу назву або код.` : 'Спробуйте іншу назву, код або штрихкод',
             '36px 20px', 'search'
         );
         return;
@@ -203,7 +205,7 @@ function renderGoodsResults(items, query, fromServer) {
     const shown = items.slice(0, GOODS_PAGE_LIMIT);
     const remaining = items.length - shown.length;
 
-    let html = shown.map((it, i) => goodsCardHtml(it, i)).join('');
+    let html = resultCountHtml(items.length, truncated) + shown.map((it, i) => goodsCardHtml(it, i, _goodsQuery)).join('');
 
     if (remaining > 0) {
         html += `
@@ -275,4 +277,10 @@ function initGoodsSearch() {
             }
         });
     }
+}
+// показывает число результатов с правильной формой слова и учетом ограничения сервера
+function resultCountHtml(count, truncated = false) {
+    const tail = count % 100;
+    const word = tail >= 11 && tail <= 14 ? 'товарів' : count % 10 === 1 ? 'товар' : count % 10 >= 2 && count % 10 <= 4 ? 'товари' : 'товарів';
+    return '<div class="results-summary" role="status"><span>Знайдено</span><b>' + fmt(count) + (truncated ? '+' : '') + ' ' + word + '</b></div>';
 }

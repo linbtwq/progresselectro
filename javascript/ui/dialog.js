@@ -36,7 +36,8 @@ const _isFormField = (el) => {
 // обработчики снимаются после закрытия чтобы не накопились
 // ============================================================
 
-function showConfirmDialog({ title, message, details, okText, cancelText, danger }) {
+// показывает общий диалог или проверку накладной в виде чека
+function showConfirmDialog({ title, message, details, receiptItems, receiptTotal, documentResult, okText, cancelText, danger }) {
     return new Promise((resolve) => {
         const overlay = document.getElementById('confirmDialogOverlay')
         const titleEl = document.getElementById('confirmDialogTitle')
@@ -51,13 +52,23 @@ function showConfirmDialog({ title, message, details, okText, cancelText, danger
             return
         }
 
+        // результат документа оформляется отдельным итоговым блоком
+        overlay.classList.toggle('document-result-dialog', !!documentResult);
+        cancelBtn.hidden = !!documentResult;
+
         // заполняем заголовок и текст
         titleEl.textContent = title || 'Підтвердіть дію'
         msgEl.textContent = message || ''
         msgEl.style.display = message ? '' : 'none'
 
         // список деталей опциональный
-        if (Array.isArray(details) && details.length) {
+        if (documentResult) {
+            detailsEl.innerHTML = documentResultMarkup(documentResult);
+            detailsEl.style.display = '';
+        } else if (Array.isArray(receiptItems) && receiptItems.length) {
+            detailsEl.innerHTML = receiptMarkup(receiptItems, receiptTotal);
+            detailsEl.style.display = '';
+        } else if (Array.isArray(details) && details.length) {
             detailsEl.innerHTML = '<ul>' + details.map(d => `<li>${escapeHtml(d)}</li>`).join('') + '</ul>'
             detailsEl.style.display = ''
         } else {
@@ -68,7 +79,7 @@ function showConfirmDialog({ title, message, details, okText, cancelText, danger
         // тексты и стиль кнопок
         okBtn.textContent = okText || 'OK'
         cancelBtn.textContent = cancelText || 'Скасувати'
-        okBtn.className = 'action-btn ' + (danger ? 'btn-danger' : 'btn-success')
+        okBtn.className = 'action-btn ' + (danger ? 'btn-danger' : 'btn-primary')
 
         // удаляет обработчики чтобы они не сработали повторно
         const cleanup = () => {
@@ -91,7 +102,8 @@ function showConfirmDialog({ title, message, details, okText, cancelText, danger
                 onCancel()
             } else if (e.key === 'Enter' && !_isFormField(document.activeElement)) {
                 e.preventDefault()
-                onOk()
+                if (document.activeElement === cancelBtn) onCancel()
+                else onOk()
             }
         }
 
@@ -103,4 +115,20 @@ function showConfirmDialog({ title, message, details, okText, cancelText, danger
         overlay.classList.add('active')
         setTimeout(() => okBtn.focus(), 80)
     })
+}
+// формирует строки чека, экранируя названия товаров перед вставкой в разметку
+function receiptMarkup(items, total) {
+    const amount = Number.isFinite(Number(total)) ? Number(total) : items.reduce((sum, item) => sum + item.qty * item.price, 0);
+    return '<div class="receipt-lines">' + items.map(item => `<div class="receipt-line"><div><span class="receipt-name">${escapeHtml(item.name)}</span><span class="receipt-meta">${fmt(item.qty)} × ${money(item.price)} ₴</span></div><b>${money(item.qty * item.price)} ₴</b></div>`).join('') + `<div class="receipt-total"><span>Разом</span><strong>${money(amount)} ₴</strong></div></div>`;
+}
+
+// рисует результат создания накладной и явно отделяет ошибку проведения от успеха
+function documentResultMarkup(result) {
+    const warning = !!result.error;
+    const symbol = warning ? '<path d="M12 7v6m0 4h.01"/><circle cx="12" cy="12" r="9"/>' : '<path d="m5 12 4 4L19 6"/>';
+    return '<div class="document-result ' + (warning?'warning':'') + '"><span class="document-result-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + symbol + '</svg></span>' +
+        '<p class="document-number">' + (result.number ? 'Накладна № ' + escapeHtml(result.number) : 'Документ підтверджено сервером') + '</p>' +
+        (result.date ? '<p class="history-note">' + escapeHtml(formatInvoiceDate(result.date)) + '</p>' : '') +
+        '<strong class="document-result-total">' + money(result.total) + ' ₴</strong><span class="document-result-count">Надіслано позицій: ' + fmt(result.count) + '</span>' +
+        (warning ? '<p class="document-result-error">' + escapeHtml(result.error) + '</p>' : '<span class="invoice-status">Підтверджено</span>') + '</div>';
 }

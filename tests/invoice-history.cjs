@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const store=new Map(); const ctx=vm.createContext({currentUser:{id:'a'},readJsonSafe:(key,f)=>store.has(key)?JSON.parse(store.get(key)):f,localStorage:{setItem:(key,value)=>store.set(key,value)},fmt:String,showToast(){}});
+const store=new Map(); const ctx=vm.createContext({currentUser:{id:'a'},readJsonSafe:(key,f)=>store.has(key)?JSON.parse(store.get(key)):f,localStorage:{setItem:(key,value)=>store.set(key,value)},fmt:String,money:String,showToast(){}});
 vm.runInContext(fs.readFileSync('javascript/features/invoiceHistory.js','utf8'),ctx);
 const payload={request_id:'one',items:[{code:'7',name:'товар',qty:2,price:5}]};
 ctx.saveInvoiceHistory(ctx.currentUser,payload,{doc_number:'001',sum:10,doc_date:'2026-10-30'},'');

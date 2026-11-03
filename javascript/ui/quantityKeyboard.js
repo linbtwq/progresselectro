@@ -61,7 +61,9 @@ function updateQuantityKeyboard() {
     const invalid = Number(value) > item.maxQty;
     document.getElementById('quantityValue').textContent = value;
     const hint = document.getElementById('quantityHint');
-    hint.textContent = invalid ? `Доступно лише ${fmt(item.maxQty)}. Зменште кількість` : `На складі: ${fmt(item.maxQty)} · Сума: ${fmt(Number(value) * item.price)} ₴`;
+    // остаток и сумма разделены визуально, чтобы быстрее проверить введенное число
+    if (invalid) hint.textContent = `Доступно лише ${fmt(item.maxQty)}. Зменште кількість`;
+    else hint.innerHTML = `<span>На складі: ${fmt(item.maxQty)}</span><span>Сума: <strong>${money(Number(value) * item.price)} ₴</strong></span>`;
     hint.classList.toggle('error', invalid);
     document.querySelector('[data-quantity-key="OK"]').disabled = invalid;
 }

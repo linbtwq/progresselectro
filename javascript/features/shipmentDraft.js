@@ -41,7 +41,7 @@ function shipmentResultDetails(response, items, conductError) {
     const details = [`Надіслано позицій: ${items.length}`];
     const total = items.reduce((sum, item) => sum + item.qty * item.price, 0);
     const serverSum = response?.sum;
-    details.push(`Сума документа: ${fmt(serverSum != null && Number.isFinite(Number(serverSum)) ? Number(serverSum) : total)} ₴`);
+    details.push(`Сума документа: ${money(serverSum != null && Number.isFinite(Number(serverSum)) ? Number(serverSum) : total)} ₴`);
     if (response?.doc_number) details.push(`Накладна № ${response.doc_number}`);
     else details.push('Сервер підтвердив документ без номера');
     if (response?.doc_date) details.push(`Дата: ${response.doc_date}`);

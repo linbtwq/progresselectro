@@ -6,7 +6,7 @@
 //
 // ответственность
 // - подключить поиск, карточки товаров, индикатор связи
-// - выпадающее меню настроек
+// - нижняя панель настроек
 // - клавиатурная навигация через onKeyDown из focus.js
 // - свайп-закрытие модалок через initModalDrag
 // - циклическое обновление статуса
@@ -53,21 +53,8 @@ function initEventListeners() {
     // без этого модалки не закрываются свайпом
     initModalDrag();
 
-    // выпадающее меню настроек
-    const settingsBtn = document.getElementById('settingsBtn');
-    const settingsMenu = document.getElementById('settingsMenu');
-    if (settingsBtn && settingsMenu) {
-        settingsBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            settingsMenu.classList.toggle('active');
-        });
-        // закрываем меню при клике вне его
-        document.addEventListener('click', (e) => {
-            if (!settingsMenu.contains(e.target) && e.target !== settingsBtn) {
-                settingsMenu.classList.remove('active');
-            }
-        });
-    }
+    // настройки открываются отдельной нижней панелью
+    initSettingsPanel();
 
     scheduleStatusLoop();
     initBackToTop();
@@ -97,4 +84,32 @@ function handleOnlineStatus() {
     retryAttempt = 0;
     syncOfflineMeters();
     if (currentUser) loadGoodsData({ silent: true });
+}
+let _settingsFocus = null;
+// подключает открытие панели и закрытие по фону или кнопке
+function initSettingsPanel() {
+    const overlay = document.getElementById('settingsMenu');
+    document.getElementById('settingsBtn')?.addEventListener('click', openSettingsPanel);
+    document.getElementById('settingsClose')?.addEventListener('click', closeSettingsPanel);
+    overlay?.addEventListener('click', event => { if (event.target === overlay) closeSettingsPanel(); });
+}
+// открывает настройки и переводит фокус внутрь панели
+function openSettingsPanel() {
+    if (!currentUser) return;
+    _settingsFocus = document.activeElement;
+    const overlay = document.getElementById('settingsMenu');
+    overlay.classList.add('active');
+    document.getElementById('settingsBtn')?.setAttribute('aria-expanded', 'true');
+    setTimeout(() => {
+        if (overlay.classList.contains('active')) document.getElementById('settingsClose')?.focus();
+    }, 80);
+}
+// закрывает панель и возвращает фокус на кнопку настроек
+function closeSettingsPanel() {
+    document.getElementById('settingsMenu')?.classList.remove('active');
+    document.getElementById('settingsBtn')?.setAttribute('aria-expanded', 'false');
+    const button = document.getElementById('settingsBtn');
+    if (_settingsFocus && document.contains(_settingsFocus)) _settingsFocus.focus();
+    else button?.focus();
+    _settingsFocus = null;
 }

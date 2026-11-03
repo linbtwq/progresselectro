@@ -1,130 +1,156 @@
-/* фон модального окна */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 16px;
-    background: rgba(10, 18, 32, 0.6);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.25s ease, visibility 0s linear 0.25s;
-}
-.modal-overlay.active {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transition: opacity 0.25s ease, visibility 0s;
-}
+/* общие окна и кнопки */
+.modal-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 1000; background: var(--overlay); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .18s, visibility .18s; }
+.modal-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
+.modal-box { display: flex; flex-direction: column; width: 100%; max-width: 460px; max-height: calc(100dvh - 32px); overflow: hidden; border: 1px solid var(--border); border-radius: 24px; background: var(--surface); box-shadow: var(--shadow-modal); transform: translateY(10px); transition: transform .18s var(--ease); }
+.modal-overlay.active .modal-box { transform: none; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 20px 18px; flex-shrink: 0; }
+.modal-header h3 { min-width: 0; overflow-wrap: anywhere; text-wrap: balance; color: var(--text-heading); font-size: 1.4rem; font-weight: 650; line-height: 1.25; letter-spacing: -.4px; }
+.modal-close { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); color: var(--text-muted); font-size: 1.1rem; }
+.modal-close:active { background: var(--surface-2); }
+.modal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px 20px; overscroll-behavior: contain; }
+.modal-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 20px; flex-shrink: 0; border-top: 1px solid var(--border); background: var(--surface); }
+.action-btn { min-height: 50px; border: 0; border-radius: var(--r); background: var(--primary); color: var(--on-primary); padding: 12px 18px; font-size: .9rem; font-weight: 600; transition: background .15s, transform .15s; }
+.action-btn:active { transform: scale(.985); background: var(--primary-strong); }
+.action-btn.btn-success { background: var(--primary); color: var(--on-primary); }
+.action-btn.btn-success:active { background: var(--primary-strong); }
+.action-btn.btn-secondary { background: var(--surface-2); color: var(--text); }
+.action-btn.btn-danger { background: var(--danger); color: var(--surface); }
+.action-btn:disabled { background: var(--surface-3); color: var(--text-muted); box-shadow: none; transform: none; }
+/* окно подбора показывает выбор тонкой рамкой и отметкой */
+#shipmentOverlay .assort-box { max-width: 640px; height: calc(100dvh - 48px); background: var(--bg); }
+#shipmentOverlay .modal-header { background: var(--bg); }
+.assort-sub { color: var(--text-muted); font-size: .8rem; line-height: 1.5; margin-top: 5px; }
+#shipmentOverlay .modal-body { padding-inline: 16px; }
+.assort-top { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 2px 0 12px; }
+.assort-search-wrap { display: flex; gap: 8px; }
+.assort-search { flex: 1; min-width: 0; width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text-heading); font-size: 16px; outline: none; transition: box-shadow .15s, border-color .15s; }
+.assort-search:focus { border-color: var(--primary-border); box-shadow: 0 0 0 3px var(--primary-soft); }
+.dg-scan-btn { display: grid; place-items: center; width: 46px; height: 48px; flex: 0 0 46px; padding: 0; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); font-size: .8rem; font-weight: 600; }
+.dg-scan-btn svg { width: 22px; height: 22px; }
+.dg-scan-btn.active { color: var(--primary); background: var(--primary-soft); border-color: var(--primary-border); }
+.selected-filter { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; margin-top: 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); color: var(--text-muted); font-size: .8rem; font-weight: 500; }
+.selected-filter span { display: grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 6px; background: var(--surface-2); font-variant-numeric: tabular-nums; }
+.selected-filter[aria-pressed="true"] { color: var(--primary); border-color: var(--primary-border); background: var(--primary-soft); }
+#shipmentGrid { display: flex; flex-direction: column; gap: 10px; }
+.assort-row { position: relative; padding: 16px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); transition: background .15s, border-color .15s; }
+.assort-row.picked { border-color: var(--primary-border); background: var(--primary-soft); }
+.assort-row.picked .assort-row-head::after { content: '✓'; display: grid; place-items: center; flex: 0 0 20px; height: 20px; border-radius: 6px; background: var(--primary); color: white; font-size: .75rem; }
+.assort-row.scanned { outline: 2px solid var(--primary); outline-offset: 2px; }
+.assort-row-head { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.assort-tile-name { color: var(--text-heading); font-size: 1rem; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.assort-row-price { font-size: .8rem; color: var(--text-muted); }
+.shipment-row-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 16px; }
+.shipment-row-fields label { display: block; color: var(--text-muted); font-size: .75rem; font-weight: 400; margin-bottom: 5px; }
+.assort-field-static { overflow-wrap: anywhere; color: var(--text-heading); font-size: .95rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.shipment-row-fields > div:nth-child(2), .shipment-row-fields > div:nth-child(4) { text-align: right; }
+.qty { display: flex; align-items: center; width: max-content; height: 44px; padding: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.qty-btn { display: grid; place-items: center; width: 42px; height: 44px; flex: 0 0 42px; border: 0; background: transparent; color: var(--text); font-size: 1.2rem; font-weight: 400; }
+.qty-btn:active { background: var(--surface-2); }
+.qty-input { width: 44px; flex: 0 0 44px; height: 40px; padding: 0 2px; border: 0; border-inline: 1px solid var(--separator); background: transparent; color: var(--text-heading); font-size: 1rem; font-weight: 600; text-align: center; caret-color: transparent; cursor: pointer; outline: 0; }
+.qty:focus-within { outline: 2px solid var(--primary-border); outline-offset: 2px; }
+.assort-row-total { display: flex; align-items: center; justify-content: flex-end; height: 44px; color: var(--text-heading); font-size: 1.1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.order-footer { flex-direction: column; align-items: stretch; gap: 12px; }
+.order-footer .action-btn { width: 100%; }
+.order-summary { flex-wrap: wrap; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: .8rem; color: var(--text-muted); }
+.order-summary b { color: var(--text-heading); font-size: 1.25rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.order-summary:empty { display: none; }
+.assort-error { color: var(--danger); font-size: .875rem; line-height: 1.6; padding: 20px 0; }
+/* нижняя клавиатура сохраняет товар и сумму в визуальном контексте */
+.quantity-keyboard { z-index: 2200; align-items: flex-end; padding: 0; }
+.quantity-panel { max-width: 480px; padding: 12px 16px max(20px, env(safe-area-inset-bottom)); border-radius: 24px 24px 0 0; gap: 8px; overflow-y: auto; max-height: 100dvh; }
+.quantity-panel::before { content: ''; width: 32px; height: 4px; border-radius: 4px; background: var(--surface-3); align-self: center; margin-bottom: 10px; flex-shrink: 0; }
+.quantity-panel h3 { color: var(--text-heading); font-size: 1.05rem; font-weight: 650; letter-spacing: -.2px; }
+.quantity-product { color: var(--text-muted); font-size: .85rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.quantity-value { overflow-wrap: anywhere; display: block; text-align: right; padding: 10px 14px; color: var(--text-heading); font-size: 2.5rem; font-weight: 600; letter-spacing: -1px; font-variant-numeric: tabular-nums; border: 1px solid var(--border); border-radius: var(--r); background: var(--bg); }
+.quantity-hint { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 14px; color: var(--text-muted); font-size: .75rem; padding: 2px 0 8px; min-height: 24px; }
+.quantity-hint strong { color: var(--text-heading); font-weight: 600; }
+.quantity-hint.error { color: var(--danger); }
+.quantity-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.quantity-keys button { min-height: 52px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface-2); color: var(--text-heading); font-size: 1.4rem; font-weight: 500; transition: background .12s, transform .12s; }
+.quantity-keys button:active { background: var(--surface-3); transform: scale(.97); }
+.quantity-keys .quantity-ok { background: var(--primary); color: white; border-color: transparent; font-size: 1rem; font-weight: 600; }
+.quantity-keys button:disabled { background: var(--surface-3); color: var(--text-muted); border-color: transparent; }
+/* проверка накладной оформлена как чек с отдельным итогом */
+#confirmDialogOverlay { z-index: 2400; }
+#confirmDialogMessage { color: var(--text-muted); font-size: .875rem; line-height: 1.6; margin-bottom: 18px; }
+#confirmDialogDetails ul { list-style: none; display: grid; gap: 12px; padding: 0; }
+#confirmDialogDetails li { overflow-wrap: anywhere; font-size: .875rem; line-height: 1.5; }
+.receipt-line { flex-wrap: wrap; display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--separator); }
+.receipt-line:first-child { border-top: 0; padding-top: 0; }
+.receipt-line > div { min-width: 0; }
+.receipt-name { display: block; color: var(--text-heading); font-size: .9rem; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+.receipt-meta { display: block; color: var(--text-muted); font-size: .8rem; margin-top: 5px; }
+.receipt-line > b { white-space: nowrap; flex-shrink: 0; color: var(--text-heading); font-size: .9rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.receipt-total { flex-wrap: wrap; display: flex; justify-content: space-between; align-items: center; gap: 16px; border-top: 1px dashed var(--border); margin-top: 12px; padding-top: 18px; color: var(--text-muted); font-size: .875rem; }
+.receipt-total strong { color: var(--text-heading); font-size: 1.5rem; font-weight: 650; letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
+#confirmDialogOverlay .modal-footer { flex-direction: column-reverse; align-items: stretch; }
+#confirmDialogOverlay .modal-footer .action-btn { width: 100%; }
+/* история использует те же карточки и семантические отметки состояния */
+.invoice-history { z-index: 2100; }
+.invoice-history .modal-box { background: var(--bg); }
+.history-note { color: var(--text-muted); font-size: .75rem; line-height: 1.6; margin-top: 6px; }
+.invoice-card { padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-card); }
+.invoice-heading { flex-wrap: wrap; display: flex; align-items: start; justify-content: space-between; gap: 16px; color: var(--text-heading); }
+.invoice-heading strong { font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+.invoice-heading > b { flex-shrink: 0; font-size: 1.25rem; font-weight: 650; letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
+.invoice-status { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; padding: 5px 8px; border-radius: 7px; color: var(--success); background: var(--success-soft); font-size: .75rem; font-weight: 500; }
+.invoice-status::before { content: '✓'; }
+.invoice-status.warning { color: var(--warning); background: var(--warning-soft); }
+.invoice-status.warning::before { content: '!'; }
+.invoice-error { color: var(--danger); font-size: .8rem; line-height: 1.5; overflow-wrap: anywhere; margin-top: 10px; }
+.invoice-card summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding-top: 12px; color: var(--text-muted); font-size: .8rem; cursor: pointer; list-style: none; }
+.invoice-card summary::-webkit-details-marker { display: none; }
+.invoice-card summary::after { content: '+'; font-size: 1.2rem; }
+.invoice-card details[open] summary::after { content: '−'; }
+.invoice-card ul { list-style: none; padding: 0; margin-top: 12px; }
+.invoice-card li { display: flex; justify-content: space-between; align-items: start; gap: 12px; border-top: 1px solid var(--separator); padding: 12px 0; font-size: .8rem; line-height: 1.5; }
+.invoice-card li span { overflow-wrap: anywhere; }
+.invoice-card li b { flex-shrink: 0; font-size: .75rem; font-weight: 500; }
+.invoice-card small { display: block; color: var(--text-muted); margin-top: 3px; }
 
-/* коробка самого модального окна */
-.modal-box {
-    background: var(--surface-solid);
-    border-radius: 24px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.05);
-    width: 100%;
-    max-width: 440px;
-    
-    max-height: calc(100dvh - 32px);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    
-    transform: translateY(20px) scale(0.98);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.modal-overlay.active .modal-box {
-    transform: translateY(0) scale(1);
-}
+/* подпись итога и количество позиций отделены от денежной суммы */
+.summary-caption { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: .875rem; font-weight: 500; }
+.summary-caption small { border: 1px solid var(--border); border-radius: 7px; padding: 3px 6px; color: var(--text-muted); font-size: .7rem; font-weight: 400; }
 
-/* шапка окна */
-.modal-header {
-    padding: 20px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    flex-shrink: 0;
-}
-.modal-header h3 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: var(--text-heading);
-    letter-spacing: -0.3px;
-}
-.modal-close {
-    background: var(--surface-2);
-    border: none;
-    color: var(--text-muted);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    font-size: 1.1rem;
-    transition: background 0.2s, transform 0.1s;
-}
-.modal-close:active { background: var(--surface-3); transform: scale(0.9); }
+/* настройки открываются нижней панелью вместо небольшого выпадающего меню */
+.settings-overlay { z-index:2050; align-items:flex-end; padding:0; }
+.settings-panel { max-width:480px; max-height:calc(100dvh - 24px); border-radius:24px 24px 0 0; padding:12px 0 max(12px,env(safe-area-inset-bottom)); }
+.settings-panel::before { content:''; width:32px; height:4px; border-radius:4px; background:var(--surface-3); align-self:center; }
+.settings-panel .modal-header { padding-top:16px; }
+.settings-panel .modal-body { padding-bottom:8px; }
+.settings-section { color:var(--text-muted); font-size:.75rem; margin:6px 12px 10px; }
+.settings-section:not(:first-child) { border-top:1px solid var(--border); padding-top:20px; margin-top:16px; }
+.settings-panel .menu-item { min-height:54px; }
+.theme-switch { position:relative; display:block; width:42px; height:26px; flex:0 0 42px; border-radius:20px; background:var(--surface-3); transition:background .16s; }
+.theme-switch::after { content:''; position:absolute; left:3px; top:3px; width:20px; height:20px; background:var(--surface); border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.15); transition:transform .16s; }
+[aria-pressed="true"] .theme-switch { background:var(--primary); }
+[aria-pressed="true"] .theme-switch::after { transform:translateX(16px); background:white; }
+/* номер документа и итог собраны в одном визуальном подтверждении */
+.document-result { display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; padding:8px 0; }
+.document-result-icon { display:grid; place-items:center; width:56px; height:56px; border-radius:18px; background:var(--success-soft); color:var(--success); margin-bottom:6px; }
+.document-result-icon svg { width:28px; height:28px; }
+.document-result.warning .document-result-icon { color:var(--warning); background:var(--warning-soft); }
+.document-number { color:var(--text-heading); font-size:1rem; font-weight:600; overflow-wrap:anywhere; }
+.document-result-total { color:var(--text-heading); font-size:2rem; font-weight:650; letter-spacing:-.6px; font-variant-numeric:tabular-nums; margin-top:6px; }
+.document-result-count { color:var(--text-muted); font-size:.8rem; }
+.document-result-error { color:var(--danger); background:var(--danger-soft); padding:12px; border-radius:12px; font-size:.8rem; line-height:1.5; overflow-wrap:anywhere; text-align:left; }
+.document-result-dialog #confirmDialogMessage { margin-bottom:8px; }
 
-/* ТЕЛО ОКНА */
-.modal-body { 
-    padding: 0 24px 24px 24px; 
-    overflow-y: auto;
-    flex: 1;
-    min-height: 0; 
-    overscroll-behavior: contain;
-}
-
-/* подвал окна с кнопками */
-.modal-footer {
-    padding: 16px 24px;
-    border-top: 1px solid var(--separator);
-    display: flex;
-    gap: 12px;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-    background: var(--surface-solid);
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.02);
-}
-
-/* стили кнопок внутри модалки */
-.action-btn {
-    padding: 12px 24px;
-    border-radius: 12px;
-    border: none;
-    background: var(--primary);
-    color: #fff;
-    font-weight: 700;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: transform 0.15s, filter 0.15s;
-}
-.action-btn:active { transform: scale(0.96); }
-.action-btn.btn-secondary { background: var(--surface-2); color: var(--text-heading); }
-.action-btn.btn-success { background: var(--success); color: #fff; }
-
-/* Улучшаем подвал модалки на мобильных экранах */
-@media (max-width: 480px) {
-    .modal-footer.order-footer {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
-        gap: 12px;
-    }
-    .modal-footer .order-summary {
-        text-align: center;
-        font-size: 0.9rem;
-    }
-    .modal-footer .action-btn {
-        width: 100%;
-        min-height: 52px;
-        font-size: 1.05rem;
-    }
-}
+/* итог выделен мягкой подложкой, чтобы сумма читалась с первого взгляда */
+.order-summary { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r); background: var(--bg); }
+.order-summary b, .receipt-total strong, .document-result-total { max-width: 100%; overflow-wrap: anywhere; }
+/* тонкие разделители и одинаковые подписи связывают все панели */
+.settings-section { font-weight: 600; letter-spacing: .02em; }
+.settings-panel .menu-item + .menu-item { margin-top: 2px; }
+.menu-value { display: grid; place-items: center; min-width: 36px; min-height: 30px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--text); }
+.invoice-card details { margin-top: 12px; border-top: 1px solid var(--separator); }
+.invoice-card summary { padding-top: 0; color: var(--text); }
+.history-note, .assort-sub { max-width: 100%; overflow-wrap: anywhere; }
+.receipt-lines { padding: 16px; border: 1px solid var(--border); border-radius: var(--r); background: var(--bg); }
+.receipt-total { border-color: var(--text-muted); }
+/* вторичные кнопки сохраняют свой цвет при касании */
+.action-btn.btn-secondary:active { background: var(--surface-3); }
+.quantity-keys .quantity-ok:active { background: var(--primary-strong); }
+/* контекст клавиатуры отделен от цифровых клавиш без лишней рамки */
+.quantity-hint { border-bottom: 1px solid var(--separator); margin-bottom: 4px; line-height: 1.5; }
+.quantity-hint.error { border-color: var(--primary-border); }

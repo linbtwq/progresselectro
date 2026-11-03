@@ -109,3 +109,49 @@ function readJsonSafe(key, fallback) {
         return fallback
     }
 }
+// форматирует денежные значения с двумя знаками, не меняя отображение количества
+const _moneyFormat = new Intl.NumberFormat('uk-UA', {minimumFractionDigits:2, maximumFractionDigits:2});
+function money(value) { const number=Number(value); return _moneyFormat.format(Number.isFinite(number)?number:0); }
+
+// выделяет точное совпадение и экранирует все части названия товара
+function highlightText(value, query = '') {
+    const text = String(value ?? '');
+    const needle = String(query).trim().slice(0,100).toLocaleLowerCase('uk-UA');
+    if (!needle) return escapeHtml(text);
+    const lower = text.toLocaleLowerCase('uk-UA');
+    let result = '', start = 0, found;
+    while ((found = lower.indexOf(needle, start)) !== -1) {
+        result += escapeHtml(text.slice(start, found)) + '<mark>' + escapeHtml(text.slice(found, found + needle.length)) + '</mark>';
+        start = found + needle.length;
+    }
+    return result + escapeHtml(text.slice(start));
+}
+
+// читает местное время сервиса без зависимости от часового пояса устройства
+function invoiceDateParts(value) {
+    if (typeof value === 'string') {
+        const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (match) {
+            const [year, month, day, hour, minute, second] = match.slice(1).map(Number);
+            const date = new Date(Date.UTC(year,month-1,day));
+            if (date.getUTCFullYear()!==year || date.getUTCMonth()!==month-1 || date.getUTCDate()!==day || hour>23 || minute>59 || (second || 0)>59) return null;
+            return {year,month,day,hour,minute};
+        }
+    }
+    const date = value instanceof Date ? value : new Date(value);
+    if (!Number.isFinite(date.getTime())) return null;
+    const parts = new Intl.DateTimeFormat('uk-UA',{timeZone:'Europe/Kyiv',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);
+    return Object.fromEntries(parts.filter(p=>p.type!=='literal').map(p=>[p.type,Number(p.value)]));
+}
+
+// показывает сегодня, вчера или полную дату по киевскому календарю
+function formatInvoiceDate(value, fallback, now = Date.now()) {
+    const date = (value ? invoiceDateParts(value) : null) || (fallback != null ? invoiceDateParts(fallback) : null);
+    const today = invoiceDateParts(now);
+    if (!date || !today) return 'Дата не вказана';
+    const calendar = d => Date.UTC(d.year,d.month-1,d.day);
+    const age = (calendar(today)-calendar(date))/86400000;
+    const pad = number => String(number).padStart(2,'0');
+    const label = age===0 ? 'Сьогодні' : age===1 ? 'Вчора' : pad(date.day)+'.'+pad(date.month)+'.'+date.year;
+    return label + ', ' + pad(date.hour)+':'+pad(date.minute);
+}

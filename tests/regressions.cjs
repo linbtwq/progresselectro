@@ -13,7 +13,7 @@ function context(extra = {}) {
     for (const file of fs.readdirSync('javascript', {recursive:true}).filter(f => f.endsWith('.js'))) new vm.Script(source('javascript/' + file));
     for (const file of ['sw.js', 'version.js']) new vm.Script(source(file));
     const box = {innerHTML:'', dataset:{}, scrollTop:0, querySelector:()=>({remove(){}}), insertAdjacentHTML(_, html){this.innerHTML += html;}};
-    const c = context({ navigator:{onLine:true}, rememberRecentSearch(){}, renderRecentSearches(){}, readJsonSafe:()=>[], localDB:{save:async()=>{}}, APP_CONFIG:{pageSize:60,loadTimeoutMs:100}, document:{getElementById:()=>box}, goodsData:[], goodsIndexBuilt:false, goodsByCode:new Map(), goodsByBarcode:new Map(), escapeHtml:String, fmt:String, emptyStateHtml:String, showToast(){}, apiBase:'test', currentUser:{id:'a'} });
+    const c = context({ navigator:{onLine:true}, rememberRecentSearch(){}, renderRecentSearches(){}, readJsonSafe:()=>[], localDB:{save:async()=>{}}, APP_CONFIG:{pageSize:60,loadTimeoutMs:100}, document:{getElementById:()=>box}, goodsData:[], goodsIndexBuilt:false, goodsByCode:new Map(), goodsByBarcode:new Map(), escapeHtml:String,highlightText:String, fmt:String,money:String, emptyStateHtml:String, showToast(){}, apiBase:'test', currentUser:{id:'a'} });
     c.read('javascript/app/load.js'); c.read('javascript/features/goods-card.js'); c.read('javascript/features/search.js');
     c.goodsData = Array.from({length:301}, (_,i)=>({id:String(i),code:String(i),name:'wire',price:1}));
     assert.equal(c.localSearchGoods('wire').length,301);

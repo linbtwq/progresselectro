@@ -293,7 +293,10 @@ function showUserInfo() {
     const btn = document.createElement('button');
     btn.className = 'logout-btn';
     btn.type = 'button';
-    btn.textContent = 'Вийти';
+    // выход остается доступным, но оформлен компактной контурной иконкой
+    btn.setAttribute('aria-label', 'Вийти');
+    btn.title = 'Вийти';
+    btn.innerHTML = '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H4v16h5m6-4 4-4-4-4m-7 4h11"/></svg>';
     btn.addEventListener('click', logout);
 
     userBadge.replaceChildren(icon, name, btn);

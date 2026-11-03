@@ -68,7 +68,8 @@ function closeTopModal() {
     }
 
     // задел под будущие модалки
-    if (m.id === 'invoiceHistoryOverlay') closeInvoiceHistory()
+    if (m.id === 'settingsMenu') closeSettingsPanel()
+    else if (m.id === 'invoiceHistoryOverlay') closeInvoiceHistory()
     else if (m.id === 'quantityKeyboardOverlay') closeQuantityKeyboard()
     else if (m.id === 'barcodeScannerOverlay') closeBarcodeScanner()
     else if (m.id === 'modalOverlay' && typeof closeModal === 'function') closeModal()

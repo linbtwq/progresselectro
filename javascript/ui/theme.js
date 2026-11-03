@@ -40,14 +40,11 @@ function initTheme() {
 
     // обновляет значок и подпись в соответствии с выбранной темой
     const setThemeIcon = (isDark) => {
-        const path = isDark
-            ? '<path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/>'
-            : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>'
-
         themeBtn.setAttribute('aria-label', isDark ? 'увімкнути світлу тему' : 'увімкнути темну тему')
         
         // меняем только внутренность иконки, чтобы не затереть текст рядом
-        themeIcon.innerHTML = `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`
+        themeIcon.textContent = '';
+        themeBtn.setAttribute('aria-pressed', String(isDark));
     }
 
     setThemeIcon(isDarkMode)
@@ -78,8 +75,8 @@ function updateThemeColor(isDark) {
             meta.name = 'theme-color'
             document.head.appendChild(meta)
         }
-        // темная тема: #121212, светлая тема: #e3181d
-        meta.content = isDark ? '#121212' : '#E3181D'
+        // цвет системной панели совпадает с фоном текущей темы
+        meta.content = isDark ? '#15171b' : '#f4f5f7'
     } catch (e) {}
 }
 

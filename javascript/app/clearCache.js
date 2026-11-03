@@ -34,6 +34,7 @@ function initClearCacheButton() {
     if (!btn) return
 
     btn.addEventListener('click', async () => {
+        closeSettingsPanel();
         // защищаем неотправленные записи от случайного удаления
         if (readQueue().length > 0) {
             await showConfirmDialog({
