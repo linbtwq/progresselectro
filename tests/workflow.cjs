@@ -8,6 +8,10 @@ ctx.shipmentItems=[{code:'007',qty:0,maxQty:10,price:2}];ctx.restoreShipmentDraf
 ctx.shipmentItems=[{code:'007',qty:0,maxQty:2,price:2}];ctx.restoreShipmentDraft();assert.equal(ctx.shipmentItems[0].qty,2);
 ctx.currentUser={id:'b'};ctx.shipmentItems=[{code:'007',qty:0,maxQty:10}];ctx.restoreShipmentDraft();assert.equal(ctx.shipmentItems[0].qty,0);assert.equal(ctx.readRecentSearches().length,0);
 const details=ctx.shipmentResultDetails({doc_number:'123',sum:10,doc_date:'2026-10-30'},[{qty:5,price:2}],'test');assert(details.some(s=>s.includes('123')));assert(details.some(s=>s.includes('test')));
+// дробный черновик восстанавливается точно и ограничивается дробным остатком
+ctx.currentUser={id:'a'};ctx.shipmentItems=[{code:'007',qty:1.25,maxQty:2.5}];ctx.saveShipmentDraft();
+ctx.shipmentItems=[{code:'007',qty:0,maxQty:2.5}];ctx.restoreShipmentDraft();assert.equal(ctx.shipmentItems[0].qty,1.25);
+ctx.shipmentItems=[{code:'007',qty:0,maxQty:0.75}];ctx.restoreShipmentDraft();assert.equal(ctx.shipmentItems[0].qty,0.75);
 ctx.currentUser={id:'a'};ctx.clearShipmentDraft();assert(!data.has('shipmentDraft:a'));
 
 // проверяет представление цен, безопасную подсветку и календарные даты без зависимости от текущего дня

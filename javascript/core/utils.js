@@ -25,7 +25,7 @@
 
 // формат чисел для украинской локали
 // создаем один раз и переиспользуем
-const _nf = new Intl.NumberFormat('uk-UA')
+const _nf = new Intl.NumberFormat('uk-UA', {maximumFractionDigits: 6})
 
 // кеш уже отформатированных строк
 // чтобы не гонять NumberFormat на каждом рендере

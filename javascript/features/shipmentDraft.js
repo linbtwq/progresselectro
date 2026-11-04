@@ -20,7 +20,7 @@ function restoreShipmentDraft() {
     let changed = 0, restored = 0;
     for (const selected of saved.items) {
         const item = shipmentItems.find(item => String(item.code) === String(selected.code));
-        const qty = Math.max(0, Math.floor(Number(selected.qty) || 0));
+        const qty = Math.max(0, Number(String(selected.qty ?? 0).replace(',', '.')) || 0);
         if (!item) { changed++; continue; }
         item.qty = Math.min(qty, item.maxQty);
         if (item.qty !== qty) changed++;

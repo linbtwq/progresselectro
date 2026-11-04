@@ -154,3 +154,6 @@
 /* контекст клавиатуры отделен от цифровых клавиш без лишней рамки */
 .quantity-hint { border-bottom: 1px solid var(--separator); margin-bottom: 4px; line-height: 1.5; }
 .quantity-hint.error { border-color: var(--primary-border); }
+
+/* подтверждение дробного количества занимает отдельную широкую строку */
+.quantity-keys .quantity-ok { grid-column: 1 / -1; }

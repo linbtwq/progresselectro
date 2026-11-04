@@ -1,11 +1,15 @@
 // вводится черновое количество: только подтверждение меняет выбранный товар
 let quantityDraft = null;
 
-// обрабатывает цифру или удаление последней цифры без отрицательных количеств
+// обрабатывает дробное количество и удаление последней цифры без отрицательных значений
 function quantityKeyValue(value, key, replace = false) {
     if (key === '-') return value.slice(0, -1) || '0';
+    // запятая и точка вводят один десятичный разделитель, внутри хранится точка
+    if (key === ',' || key === '.') return replace ? '0.' : value.includes('.') ? value : value + '.';
     if (!/^\d$/.test(key)) return value;
-    return ((replace || value === '0') ? key : value + key).slice(0, 6);
+    const next = (replace || value === '0') ? key : value + key;
+    const [whole, fraction = ''] = next.split('.');
+    return whole.length > 6 || fraction.length > 6 ? value : next;
 }
 
 // создает цифровую клавиатуру и подключает кнопки и физические клавиши
@@ -18,8 +22,8 @@ function initQuantityKeyboard() {
         <p id="quantityProduct" class="quantity-product"></p>
         <output id="quantityValue" class="quantity-value" aria-live="polite">0</output>
         <p id="quantityHint" class="quantity-hint" aria-live="polite"></p>
-        <div class="quantity-keys">${['1','2','3','4','5','6','7','8','9','-','0','OK'].map(key =>
-            `<button type="button" data-quantity-key="${key}" ${key === '-' ? 'aria-label="Видалити останню цифру"' : ''} class="${key === 'OK' ? 'quantity-ok' : ''}">${key === '-' ? '−' : key === 'OK' ? 'ОК' : key}</button>`).join('')}</div>
+        <div class="quantity-keys">${['1','2','3','4','5','6','7','8','9',',','0','-','OK'].map(key =>
+            `<button type="button" data-quantity-key="${key}" ${key === '-' ? 'aria-label="Видалити останню цифру"' : key === ',' ? 'aria-label="Десятковий роздільник"' : ''} class="${key === 'OK' ? 'quantity-ok' : ''}">${key === '-' ? '−' : key === 'OK' ? 'ОК' : key}</button>`).join('')}</div>
     </section>`;
     document.body.appendChild(overlay);
     overlay.addEventListener('click', event => {
@@ -30,7 +34,7 @@ function initQuantityKeyboard() {
     document.addEventListener('keydown', event => {
         if (!quantityDraft) return;
         const key = event.key;
-        if (/^\d$/.test(key) || ['Backspace', 'Delete', '-', 'Enter', 'Escape'].includes(key)) {
+        if (/^\d$/.test(key) || ['Backspace', 'Delete', '-', '.', ',', 'Enter', 'Escape'].includes(key)) {
             event.preventDefault(); event.stopImmediatePropagation();
             if (key === 'Escape') closeQuantityKeyboard();
             else handleQuantityKey(key === 'Enter' ? 'OK' : ['Backspace','Delete'].includes(key) ? '-' : key);
@@ -59,7 +63,7 @@ function updateQuantityKeyboard() {
     if (!quantityDraft) return;
     const {value, item} = quantityDraft;
     const invalid = Number(value) > item.maxQty;
-    document.getElementById('quantityValue').textContent = value;
+    document.getElementById('quantityValue').textContent = value.replace('.', ',');
     const hint = document.getElementById('quantityHint');
     // остаток и сумма разделены визуально, чтобы быстрее проверить введенное число
     if (invalid) hint.textContent = `Доступно лише ${fmt(item.maxQty)}. Зменште кількість`;

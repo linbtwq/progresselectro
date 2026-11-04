@@ -10,6 +10,16 @@ assert.equal(ctx.quantityKeyValue('1','-'), '0');
 assert.equal(ctx.quantityKeyValue('0','0'), '0');
 assert.equal(ctx.quantityKeyValue('123456','7'), '123456');
 assert.equal(ctx.quantityKeyValue('1','x'), '1');
+// проверяет ввод запятой и точки, дробный остаток и запрет превышения
+assert.equal(ctx.quantityKeyValue('2',','), '2.');
+assert.equal(ctx.quantityKeyValue('2.5','.'), '2.5');
+assert.equal(ctx.quantityKeyValue('12',',',true), '0.');
+assert.equal(ctx.quantityKeyValue('2.5','-'), '2.');
+assert.equal(ctx.quantityKeyValue('0.123456','7'), '0.123456');
+vm.runInContext(`var fractional={qty:0,maxQty:2.5,price:10};quantityDraft={item:fractional,input:{},row:{dataset:{idx:0}},value:'2.6'}`,ctx);
+ctx.handleQuantityKey('OK');assert.equal(vm.runInContext('fractional.qty',ctx),0);
+vm.runInContext("quantityDraft.value='2.5'",ctx);ctx.handleQuantityKey('OK');
+assert.equal(vm.runInContext('fractional.qty',ctx),2.5);
 vm.runInContext(`quantityDraft={item:{qty:0,maxQty:12,price:5},input:{value:0},row:{dataset:{idx:0}},value:'13',replace:false}`,ctx);
 ctx.handleQuantityKey('OK');
 assert.equal(vm.runInContext('quantityDraft.item.qty',ctx),0);

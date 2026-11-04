@@ -7,6 +7,7 @@ const GOODS_PAGE_LIMIT = APP_CONFIG.pageSize || 60;
 let _goodsResults = [];
 let _goodsShown = 0;
 let _goodsQuery = '';
+let _goodsTruncated = false;
 function cancelGoodsSearch() {
     clearTimeout(_searchTimer);
     ++_searchSeq;
@@ -20,6 +21,7 @@ function showMoreGoods() {
     const end = Math.min(_goodsShown + GOODS_PAGE_LIMIT, _goodsResults.length);
     container.insertAdjacentHTML('beforeend', _goodsResults.slice(_goodsShown, end).map((item, i) => goodsCardHtml(item, i, _goodsQuery)).join(''));
     _goodsShown = end;
+    if (end === _goodsResults.length && !_goodsTruncated) container.insertAdjacentHTML('beforeend', goodsListEndHtml());
     if (end < _goodsResults.length) container.insertAdjacentHTML('beforeend',
         '<div class="show-more-wrap"><div class="show-more-progress">' + end + ' із ' + _goodsResults.length + '</div><button class="action-btn btn-secondary" data-action="more">Показати ще</button></div>');
 }
@@ -57,9 +59,10 @@ async function remoteSearchGoods(query, signal) {
     const u = currentUser ? encodeURIComponent(currentUser.id) : '';
     const url = `${apiBase}/goods?u=${u}&q=${encodeURIComponent(query)}&t=${Date.now()}`;
     const res = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store', signal }, APP_CONFIG.loadTimeoutMs);
-    if (!res.ok) throw new Error('Помилка мережі');
+    if (!res.ok) throw new Error('Пошук: HTTP ' + res.status);
     const data = await res.json();
-    return {items: Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []), truncated: data.truncated === true};
+    if (!Array.isArray(data) && (!data || !Array.isArray(data.items))) throw new Error('Некоректна відповідь пошуку');
+    return {items: Array.isArray(data) ? data : data.items, truncated: data.truncated === true};
 }
 
 function handleGoodsSearchInput(e) {
@@ -98,26 +101,30 @@ async function runGoodsSearch(query) {
         return;
     }
 
-    if (goodsData.length && !navigator.onLine) {
-        const local = localSearchGoods(query);
-        if (seq === _searchSeq) renderGoodsResults(local, query, false);
+    if (!navigator.onLine) {
+        if (seq === _searchSeq) renderCachedGoodsSearch(query, 'Немає мережі. Показано лише збережені товари; ціни та залишки можуть бути неактуальними.');
         return;
     }
 
     _searchAbort = new AbortController();
-    resultsContainer.innerHTML = `<div class="goods-loading"><div class="skeleton skeleton-text"></div></div>`;
+    resultsContainer.innerHTML = goodsSkeletonHtml();
+    let result;
     try {
-        const items = await remoteSearchGoods(query, _searchAbort.signal);
-        if (seq !== _searchSeq) return;
-        renderGoodsResults(items.items, query, true, items.truncated);
-        if (items.truncated) resultsContainer.insertAdjacentHTML('beforeend', '<p class="search-note">Показано перші 50 товарів. Уточніть пошук.</p>');
+        result = await remoteSearchGoods(query, _searchAbort.signal);
     } catch (err) {
         if (err.name === 'AbortError') return;
         if (seq !== _searchSeq) return;
-        const cached = localSearchGoods(query);
-        if (cached.length) { renderGoodsResults(cached, query, false); showToast('Офлайн: результати зі збережених товарів'); }
-        else resultsContainer.innerHTML = emptyStateHtml('Перевірте інтернет і повторіть пошук.', '36px 20px', 'offline');
+        // ошибка сервера или формата ответа не означает отсутствие интернета
+        console.warn('[goods search]', err);
+        renderCachedGoodsSearch(query, navigator.onLine
+            ? 'Не вдалося оновити пошук. Показано лише збережені товари; ціни та залишки можуть бути неактуальними.'
+            : 'Немає мережі. Показано лише збережені товари; ціни та залишки можуть бути неактуальними.');
+        return;
     }
+    if (seq !== _searchSeq) return;
+    // ошибки отображения не маскируются под сетевой сбой
+    renderGoodsResults(result.items, query, true, result.truncated);
+    if (result.truncated) resultsContainer.insertAdjacentHTML('beforeend', '<p class="search-note">Показано перші ' + result.items.length + ' товарів. Уточніть пошук.</p>');
 }
 
 async function searchGoodsByBarcode(barcode) {
@@ -180,6 +187,7 @@ async function searchGoodsByBarcode(barcode) {
 
 function renderGoodsResults(items, query, fromServer, truncated = false) {
     _goodsQuery = query || '';
+    _goodsTruncated = truncated;
     const container = document.getElementById('resultsContainer');
     if (!container) return;
 
@@ -216,6 +224,7 @@ function renderGoodsResults(items, query, fromServer, truncated = false) {
         `;
     }
 
+    if (!remaining && !truncated) html += goodsListEndHtml();
     container.innerHTML = html;
     container.dataset.renderKey = `q:${query}:${fromServer ? 'srv' : 'loc'}`;
     container.scrollTop = 0;
@@ -283,4 +292,26 @@ function resultCountHtml(count, truncated = false) {
     const tail = count % 100;
     const word = tail >= 11 && tail <= 14 ? 'товарів' : count % 10 === 1 ? 'товар' : count % 10 >= 2 && count % 10 <= 4 ? 'товари' : 'товарів';
     return '<div class="results-summary" role="status"><span>Знайдено</span><b>' + fmt(count) + (truncated ? '+' : '') + ' ' + word + '</b></div>';
+}
+
+// завершает только полностью показанную выдачу, без обещания полноты при ограничении сервера
+function goodsListEndHtml() {
+    return '<div class="results-end"><span>Усі знайдені товари показано</span></div>';
+}
+
+// повторяет геометрию будущих карточек, не выдавая заглушки за реальные данные
+function goodsSkeletonHtml(layout = 'goods') {
+    const assortment = layout === 'assort';
+    const card = '<div class="loading-card" aria-hidden="true"><div class="loading-head"><div class="loading-name"><span class="skeleton loading-line"></span><span class="skeleton loading-line short"></span></div>' +
+        (assortment ? '' : '<span class="skeleton loading-price"></span>') + '</div><div class="loading-meta"><span class="skeleton loading-code"></span><span class="skeleton loading-stock"></span></div>' +
+        (assortment ? '<div class="loading-meta loading-controls"><span class="skeleton loading-quantity"></span><span class="skeleton loading-price"></span></div>' : '') + '</div>';
+    return '<div class="loading-list ' + (assortment ? 'loading-assort' : '') + '" role="status" aria-label="Завантаження товарів"><span class="visually-hidden">Завантаження товарів…</span>' + card.repeat(3) + '</div>';
+}
+
+// показывает источник данных внутри выдачи без повторяющихся всплывающих уведомлений
+function renderCachedGoodsSearch(query, message) {
+    const container = document.getElementById('resultsContainer');
+    renderGoodsResults(localSearchGoods(query), query, false, true);
+    if (!_goodsResults.length) container.innerHTML = emptyStateHtml('У збережених товарах немає збігів. Повний пошук зараз недоступний.', '36px 20px', 'search');
+    container.insertAdjacentHTML('afterbegin', '<p class="search-source-note" role="status">' + escapeHtml(message) + '</p>');
 }

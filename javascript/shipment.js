@@ -67,7 +67,7 @@ async function openShipmentModal() {
     summary.textContent = ''
     sendBtn.disabled = true
 
-    body.innerHTML = `<div class="assort-loading"><div class="skeleton skeleton-text" style="width:60%;"></div><div class="skeleton skeleton-text" style="width:80%;"></div><div class="skeleton skeleton-text" style="width:50%;"></div></div>`
+    body.innerHTML = goodsSkeletonHtml('assort')
     overlay.classList.add('active')
     shipmentLoading = true
 
@@ -93,7 +93,7 @@ async function openShipmentModal() {
             code: String(it.Code || ''),
             name: String(it.Name || ''),
             price: Number(it.price) || 0,
-            maxQty: Math.max(0, Math.floor(Number(it.quantity) || 0)),
+            maxQty: Math.max(0, Number(String(it.quantity ?? 0).replace(',', '.')) || 0),
             qty: 0
         }))
 
@@ -195,7 +195,8 @@ function renderShipmentBody() {
         if (!shipmentItems[idx]) return
         const step = Number(btn.dataset.step) || 0
         const maxQ = shipmentItems[idx].maxQty
-        let next = shipmentItems[idx].qty + step
+        // убирает хвост двоичной арифметики при изменении дробного количества
+        let next = Number((shipmentItems[idx].qty + step).toFixed(6))
         if (next < 0) next = 0
         if (next > maxQ) next = maxQ
         shipmentItems[idx].qty = next
@@ -211,7 +212,8 @@ function renderShipmentBody() {
         if (!row) return
         const idx = Number(row.dataset.idx)
         if (!shipmentItems[idx]) return
-        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6)
+        // сохраняет дробную часть при вводе количества
+        e.target.value = e.target.value.replace(',', '.').replace(/[^\d.]/g, '')
         let val = Number(e.target.value) || 0
         const maxQ = shipmentItems[idx].maxQty
         if (val > maxQ) val = maxQ
