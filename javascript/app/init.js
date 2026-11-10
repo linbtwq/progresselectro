@@ -64,7 +64,8 @@ async function startApp() {
 
 function initServiceWorker() {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.error('помилка sw:', err));
+        // обновление версии воркера и его импортов проверяется без старого http-кеша
+        navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'}).catch(err => console.error('помилка sw:', err));
     }
 }
 

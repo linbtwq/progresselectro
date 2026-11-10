@@ -55,14 +55,61 @@ function localSearchGoods(query) {
     return results;
 }
 
-async function remoteSearchGoods(query, signal) {
-    const u = currentUser ? encodeURIComponent(currentUser.id) : '';
-    const url = `${apiBase}/goods?u=${u}&q=${encodeURIComponent(query)}&t=${Date.now()}`;
-    const res = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store', signal }, APP_CONFIG.loadTimeoutMs);
-    if (!res.ok) throw new Error('Пошук: HTTP ' + res.status);
-    const data = await res.json();
-    if (!Array.isArray(data) && (!data || !Array.isArray(data.items))) throw new Error('Некоректна відповідь пошуку');
-    return {items: Array.isArray(data) ? data : data.items, truncated: data.truncated === true};
+// повторяет только безопасный поиск при временном сбое, не повторяя отправку документов
+async function remoteSearchGoods(query, signal, byBarcode = false) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try { return await requestGoodsSearch(query, signal, byBarcode); }
+        catch (error) {
+            if (signal?.aborted || error.name === 'AbortError') throw error;
+            const retryable = error instanceof TypeError || error instanceof SyntaxError || error.code === 'timeout' || [408,429,500,502,503,504].includes(error.status);
+            if (attempt || !retryable || !navigator.onLine) throw error;
+            await waitGoodsRetry(signal);
+        }
+    }
+}
+
+// ограничивает время всего запроса, включая чтение json, и снимает обработчики отмены
+async function requestGoodsSearch(query, signal, byBarcode) {
+    const controller = new AbortController();
+    const abortError = () => Object.assign(new Error('Пошук скасовано'), {name:'AbortError'});
+    let rejectInterrupted;
+    const interrupted = new Promise((_, reject) => { rejectInterrupted = reject; });
+    const cancel = () => { controller.abort(); rejectInterrupted(abortError()); };
+    if (signal?.aborted) throw abortError();
+    signal?.addEventListener('abort', cancel, {once:true});
+    const timer = setTimeout(() => {
+        controller.abort();
+        rejectInterrupted(Object.assign(new Error('Час очікування пошуку вичерпано'), {code:'timeout'}));
+    }, APP_CONFIG.loadTimeoutMs);
+    try {
+        const request = (async () => {
+            const u = currentUser ? encodeURIComponent(currentUser.id) : '';
+            const parameter = byBarcode ? 'barcode' : 'q';
+            const url = apiBase + '/goods?u=' + u + '&' + parameter + '=' + encodeURIComponent(query) + '&t=' + Date.now();
+            const response = await fetchWithTimeout(url, {method:'GET', cache:'no-store', signal:controller.signal}, APP_CONFIG.loadTimeoutMs);
+            if (!response.ok) {
+                // текст отказа помогает отличить ограничение поиска от отсутствия связи
+                const detail = typeof response.text === 'function' ? (await response.text()).slice(0, 240) : '';
+                throw Object.assign(new Error('Пошук: HTTP ' + response.status + (detail ? ' · ' + detail : '')), {status:response.status});
+            }
+            const data = await response.json();
+            if (!Array.isArray(data) && (!data || !Array.isArray(data.items))) throw new Error('Некоректна відповідь пошуку');
+            const items = Array.isArray(data) ? data : data.items;
+            if (items.some(item => !item || typeof item !== 'object' || Array.isArray(item))) throw new Error('Некоректний товар у відповіді пошуку');
+            return {items, truncated: data.truncated === true};
+        })();
+        return await Promise.race([request, interrupted]);
+    } finally { clearTimeout(timer); signal?.removeEventListener('abort', cancel); }
+}
+
+// отменяет короткую задержку повтора сразу при новом вводе
+function waitGoodsRetry(signal) {
+    return new Promise((resolve, reject) => {
+        const cancel = () => { clearTimeout(timer); signal?.removeEventListener('abort', cancel); reject(Object.assign(new Error('Пошук скасовано'), {name:'AbortError'})); };
+        const timer = setTimeout(() => { signal?.removeEventListener('abort', cancel); resolve(); }, 300);
+        if (signal?.aborted) cancel();
+        else signal?.addEventListener('abort', cancel, {once:true});
+    });
 }
 
 function handleGoodsSearchInput(e) {
@@ -161,14 +208,10 @@ async function searchGoodsByBarcode(barcode) {
         return;
     }
 
-    if (resultsContainer) resultsContainer.innerHTML = `<div class="goods-loading"><div class="skeleton skeleton-text"></div></div>`;
+    if (resultsContainer) resultsContainer.innerHTML = goodsSkeletonHtml();
     try {
-        const u = currentUser ? encodeURIComponent(currentUser.id) : '';
-        const url = `${apiBase}/goods?u=${u}&barcode=${encodeURIComponent(clean)}&t=${Date.now()}`;
-        const res = await fetchWithTimeout(url, { method: 'GET', cache: 'no-store', signal: _searchAbort.signal }, APP_CONFIG.loadTimeoutMs);
-        if (!res.ok) throw new Error('Помилка мережі');
-        const data = await res.json();
-        const items = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
+        const result = await remoteSearchGoods(clean, _searchAbort.signal, true);
+        const items = result.items;
 
         if (seq !== _searchSeq) return;
         if (!items.length) {
