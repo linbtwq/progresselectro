@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const store=new Map(); const ctx=vm.createContext({currentUser:{id:'a'},readJsonSafe:(key,f)=>store.has(key)?JSON.parse(store.get(key)):f,localStorage:{setItem:(key,value)=>store.set(key,value)},fmt:String,money:String,showToast(){}});
+const store=new Map(); const ctx=vm.createContext({currentUser:{id:'a'},clearTimeout,readJsonSafe:(key,f)=>store.has(key)?JSON.parse(store.get(key)):f,localStorage:{setItem:(key,value)=>store.set(key,value)},fmt:String,money:String,showToast(){}});
 vm.runInContext(fs.readFileSync('javascript/features/invoiceHistory.js','utf8'),ctx);
 const payload={request_id:'one',items:[{code:'7',name:'товар',qty:2,price:5}]};
 ctx.saveInvoiceHistory(ctx.currentUser,payload,{doc_number:'001',sum:10,doc_date:'2026-10-30'},'');
@@ -10,7 +10,7 @@ assert.equal(ctx.readInvoiceHistory()[0].error,'помилка');
 ctx.currentUser={id:'b'};assert.equal(ctx.readInvoiceHistory().length,0);
 let resolveReview, sent=0;
 const overlay={inert:false};
-Object.assign(ctx,{document:{getElementById:()=>overlay,querySelector:()=>({})},navigator:{onLine:true},closeQuantityKeyboard(){},newRequestId:()=> 'id',shipmentDraftKey:()=> 'draft',showConfirmDialog:()=>new Promise(r=>resolveReview=r),submitDocument:async()=>{sent++},updateShipmentSummary(){}});
+Object.assign(ctx,{document:{getElementById:()=>overlay,querySelector:()=>({})},navigator:{onLine:true},closeQuantityKeyboard(){},newRequestId:()=> 'id',shipmentDraftKey:()=> 'draft',showConfirmDialog:()=>new Promise(r=>resolveReview=r),submitDocument:async options=>{assert.equal(options.endpoint,'customer-order');assert(!options.validateResponse({ok:true,doc_number:'old'}));assert(options.validateResponse({ok:true,document_type:'customer_order',doc_number:'new'}));sent++},updateShipmentSummary(){}});
 vm.runInContext(fs.readFileSync('javascript/shipment.js','utf8'),ctx);
 ctx.updateShipmentSummary=()=>{};
 vm.runInContext("shipmentItems=[{code:'7',name:'товар',qty:2,price:5}]",ctx);

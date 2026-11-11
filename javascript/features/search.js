@@ -56,9 +56,9 @@ function localSearchGoods(query) {
 }
 
 // повторяет только безопасный поиск при временном сбое, не повторяя отправку документов
-async function remoteSearchGoods(query, signal, byBarcode = false) {
+async function remoteSearchGoods(query, signal, byBarcode = false, endpoint = 'goods') {
     for (let attempt = 0; attempt < 2; attempt++) {
-        try { return await requestGoodsSearch(query, signal, byBarcode); }
+        try { return await requestGoodsSearch(query, signal, byBarcode, endpoint); }
         catch (error) {
             if (signal?.aborted || error.name === 'AbortError') throw error;
             const retryable = error instanceof TypeError || error instanceof SyntaxError || error.code === 'timeout' || [408,429,500,502,503,504].includes(error.status);
@@ -69,7 +69,7 @@ async function remoteSearchGoods(query, signal, byBarcode = false) {
 }
 
 // ограничивает время всего запроса, включая чтение json, и снимает обработчики отмены
-async function requestGoodsSearch(query, signal, byBarcode) {
+async function requestGoodsSearch(query, signal, byBarcode, endpoint) {
     const controller = new AbortController();
     const abortError = () => Object.assign(new Error('Пошук скасовано'), {name:'AbortError'});
     let rejectInterrupted;
@@ -85,7 +85,7 @@ async function requestGoodsSearch(query, signal, byBarcode) {
         const request = (async () => {
             const u = currentUser ? encodeURIComponent(currentUser.id) : '';
             const parameter = byBarcode ? 'barcode' : 'q';
-            const url = apiBase + '/goods?u=' + u + '&' + parameter + '=' + encodeURIComponent(query) + '&t=' + Date.now();
+            const url = apiBase + '/' + endpoint + '?u=' + u + '&' + parameter + '=' + encodeURIComponent(query) + '&t=' + Date.now();
             const response = await fetchWithTimeout(url, {method:'GET', cache:'no-store', signal:controller.signal}, APP_CONFIG.loadTimeoutMs);
             if (!response.ok) {
                 // текст отказа помогает отличить ограничение поиска от отсутствия связи

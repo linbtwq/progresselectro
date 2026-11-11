@@ -65,7 +65,7 @@ function Read-TestLogin($Label) {
 }
 
 try {
-    foreach ($route in @('login', 'goods', 'shipment')) {
+    foreach ($route in @('login', 'goods', 'customer-order')) {
         $reply = Invoke-Service 'OPTIONS' $route
         if ($reply.Status -eq 401) {
             throw "Публикация вернула HTTP 401 для /$route. Проверь учётные данные 1С и передай их через -Credential."
@@ -91,9 +91,9 @@ try {
         Write-Host "OK поиск $($query.Key)"
     }
     foreach ($account in @($first, $second)) {
-        $reply = Invoke-Service 'GET' 'shipment' $account.Code
+        $reply = Invoke-Service 'GET' ('customer-order?q=' + [uri]::EscapeDataString($code)) $account.Code
         Confirm-Result ($reply.Status -eq 200) "Подбор отгрузки вернул HTTP $($reply.Status). $($reply.Data.error)"
-        if ($account.Code -eq $first.Code) { $selection = $reply.Data }
+        if ($account.Code -eq $first.Code) { $selection = $reply.Data.items }
     }
     $rows = @($selection | Where-Object { [string]$_.Code -eq $code })
     Confirm-Result ($rows.Count -eq 1) "В подборе нужна одна строка товара $code."
@@ -109,32 +109,20 @@ try {
     $payload = @{
         point_id = '0'
         technician_id = [string]$first.Code
-        request_id = [guid]::NewGuid().ToString()
         items = @(@{ code = $code; name = $item.Name; qty = 1.25; price = $price })
     }
 
-    Write-Host "Проверяю запись $($payload.request_id)"
-    $created = Invoke-Service 'POST' 'shipment' $first.Code $payload
-    Confirm-Result ($created.Status -eq 200 -and $created.Data.ok -eq $true -and $created.Data.doc_number -and -not $created.Data.conduct_error) "Проведение не подтверждено. HTTP $($created.Status). $($created.Data.error)"
-    Write-Host "OK создана накладная $($created.Data.doc_number)"
-    $duplicate = Invoke-Service 'POST' 'shipment' $first.Code $payload
-    Confirm-Result ($duplicate.Status -eq 200 -and $duplicate.Data.duplicate -eq $true -and $duplicate.Data.doc_number -eq $created.Data.doc_number) 'Повтор не подтвердил прежнюю накладную.'
-    Write-Host "OK точный повтор вернул прежний номер"
-    $payload.items[0].qty = 1.251
-    $changed = Invoke-Service 'POST' 'shipment' $first.Code $payload
-    Confirm-Result ($changed.Status -eq 400 -and $changed.Data.error -like '*повторного запиту*') "Сервер не подтвердил отказ из-за изменения состава. HTTP $($changed.Status)."
-    Write-Host "OK изменённый повтор отклонён"
-
-    $after = Invoke-Service 'GET' 'shipment' $first.Code
+    $created = Invoke-Service 'POST' 'customer-order' $first.Code $payload
+    Confirm-Result ($created.Status -eq 200 -and $created.Data.ok -eq $true -and $created.Data.doc_number -and $created.Data.document_type -eq 'customer_order') "Создание заказа не подтверждено. HTTP $($created.Status). $($created.Data.error)"
+    Write-Host "OK создан заказ $($created.Data.doc_number)"
+    $after = Invoke-Service 'GET' ('customer-order?q=' + [uri]::EscapeDataString($code)) $first.Code
     Confirm-Result ($after.Status -eq 200) 'Не удалось перечитать остаток.'
-    $remaining = @($after.Data | Where-Object { [string]$_.Code -eq $code })
+    $remaining = @($after.Data.items | Where-Object { [string]$_.Code -eq $code })
     $remainingQty = if ($remaining.Count) { [decimal]$remaining[0].quantity } else { 0 }
-    Confirm-Result ($remaining.Count -le 1 -and $remainingQty -eq ($available - 1.25)) 'Остаток изменился не на 1,25. Проверь движения и параллельные операции.'
-    Write-Host 'OK остаток уменьшился на 1,25'
-    $payload.request_id = [guid]::NewGuid().ToString()
+    Confirm-Result ($remaining.Count -le 1 -and $remainingQty -eq $available) 'При записи заказа изменился остаток. Проверь движения и параллельные операции.'
+    Write-Host 'OK остаток не изменился после записи заказа'
     $payload.items[0].qty = $remainingQty + 1
-    $overstock = Invoke-Service 'POST' 'shipment' $first.Code $payload
+    $overstock = Invoke-Service 'POST' 'customer-order' $first.Code $payload
     Confirm-Result ($overstock.Status -eq 400 -and $overstock.Data.error -like '*Недостатній залишок*') "Сервер не подтвердил отказ по остатку. HTTP $($overstock.Status)."
-    Write-Host "OK превышение остатка отклонено. Проверь отсутствие документа с ID $($payload.request_id)."
-    Write-Host "В накладной $($created.Data.doc_number) проверь магазин, организацию, точку и контрагента."
+    Write-Host "В заказе $($created.Data.doc_number) проверь магазин, организацию, точку и контрагента."
 } finally { $client.Dispose() }

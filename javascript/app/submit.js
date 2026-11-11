@@ -33,7 +33,8 @@ async function submitDocument({
     loadingText = 'Відправка...',
     successText = 'Документ створено',
     errorPrefix = 'Помилка',
-    onSuccess
+    onSuccess,
+    validateResponse
 }) {
     // защита от повторных кликов
     if (btn && btn.disabled) {
@@ -50,7 +51,9 @@ async function submitDocument({
     let conductError = '';
 
     try {
-        const response = await postJson(endpoint, payload);
+        // идентификатор черновика используется локальной историей
+        const { request_id, ...orderPayload } = payload;
+        const response = await postJson(endpoint, endpoint === "customer-order" ? orderPayload : payload);
 
         if (!response.ok) {
             const errText = await response.text();
@@ -70,6 +73,10 @@ async function submitDocument({
             throw new Error(responseBody.error || responseBody.debt_error || '1С відхилила документ.');
         }
 
+        // проверяет подтверждение сервера перед очисткой черновика
+        if (validateResponse && !validateResponse(responseBody)) {
+            throw new Error('1С не підтвердила створення замовлення. Чернетку збережено.');
+        }
         success = true;
 
     } catch (err) {

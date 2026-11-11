@@ -127,7 +127,7 @@ function documentResultMarkup(result) {
     const warning = !!result.error;
     const symbol = warning ? '<path d="M12 7v6m0 4h.01"/><circle cx="12" cy="12" r="9"/>' : '<path d="m5 12 4 4L19 6"/>';
     return '<div class="document-result ' + (warning?'warning':'') + '"><span class="document-result-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + symbol + '</svg></span>' +
-        '<p class="document-number">' + (result.number ? 'Накладна № ' + escapeHtml(result.number) : 'Документ підтверджено сервером') + '</p>' +
+        '<p class="document-number">' + (result.number ? (result.documentType === 'customer_order' ? 'Замовлення № ' : 'Накладна № ') + escapeHtml(result.number) : 'Документ підтверджено сервером') + '</p>' +
         (result.date ? '<p class="history-note">' + escapeHtml(formatInvoiceDate(result.date)) + '</p>' : '') +
         '<strong class="document-result-total">' + money(result.total) + ' ₴</strong><span class="document-result-count">Надіслано позицій: ' + fmt(result.count) + '</span>' +
         (warning ? '<p class="document-result-error">' + escapeHtml(result.error) + '</p>' : '<span class="invoice-status">Підтверджено</span>') + '</div>';

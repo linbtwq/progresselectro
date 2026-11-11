@@ -22,16 +22,13 @@
 .assort-sub { color: var(--text-muted); font-size: .8rem; line-height: 1.5; margin-top: 5px; }
 #shipmentOverlay .modal-body { padding-inline: 16px; }
 .assort-top { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 2px 0 12px; }
-.assort-search-wrap { display: flex; gap: 8px; }
 .assort-search { flex: 1; min-width: 0; width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text-heading); font-size: 16px; outline: none; transition: box-shadow .15s, border-color .15s; }
 .assort-search:focus { border-color: var(--primary-border); box-shadow: 0 0 0 3px var(--primary-soft); }
-.dg-scan-btn { display: grid; place-items: center; width: 46px; height: 48px; flex: 0 0 46px; padding: 0; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); font-size: .8rem; font-weight: 600; }
-.dg-scan-btn svg { width: 22px; height: 22px; }
-.dg-scan-btn.active { color: var(--primary); background: var(--primary-soft); border-color: var(--primary-border); }
 .selected-filter { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; margin-top: 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); color: var(--text-muted); font-size: .8rem; font-weight: 500; }
 .selected-filter span { display: grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 6px; background: var(--surface-2); font-variant-numeric: tabular-nums; }
 .selected-filter[aria-pressed="true"] { color: var(--primary); border-color: var(--primary-border); background: var(--primary-soft); }
 #shipmentGrid { display: flex; flex-direction: column; gap: 10px; }
+.shipment-search-status { color: var(--text-muted); font-size: .875rem; padding: 10px 2px; }
 .assort-row { position: relative; padding: 16px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); transition: background .15s, border-color .15s; }
 .assort-row.picked { border-color: var(--primary-border); background: var(--primary-soft); }
 .assort-row.picked .assort-row-head::after { content: '✓'; display: grid; place-items: center; flex: 0 0 20px; height: 20px; border-radius: 6px; background: var(--primary); color: white; font-size: .75rem; }
@@ -157,3 +154,32 @@
 
 /* подтверждение дробного количества занимает отдельную широкую строку */
 .quantity-keys .quantity-ok { grid-column: 1 / -1; }
+
+/* состояния поиска и акценты в окне заказа */
+.shipment-search-field { position: relative; flex: 1; min-width: 0; }
+.shipment-search-field > svg { position: absolute; top: 15px; left: 13px; width: 18px; height: 18px; color: var(--text-muted); pointer-events: none; }
+.shipment-search-field .assort-search { padding-left: 39px; }
+.shipment-state[hidden], .shipment-selected-heading[hidden] { display: none; }
+.shipment-state { display: grid; justify-items: center; gap: 9px; padding: 24px 16px; margin-bottom: 12px; text-align: center; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); color: var(--text-heading); }
+.shipment-state-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); }
+.shipment-state-icon svg { width: 22px; height: 22px; }
+.shipment-state-detail { max-width: 28ch; font-size: .875rem; line-height: 1.45; color: var(--text-muted); }
+.shipment-selected-heading { margin: 0 0 10px; color: var(--text-heading); font-size: .95rem; }
+#shipmentGrid .assort-row:not(.picked) .shipment-row-fields > div:nth-child(4) { visibility: hidden; }
+#shipmentGrid .assort-row:not(.picked) [data-step="-1"] { color: var(--text-muted); }
+#shipmentGrid [data-step="1"] { background: var(--primary); color: var(--on-primary); }
+#shipmentGrid [data-step="1"]:active { background: var(--primary-strong); }
+#shipmentOverlay .order-footer .action-btn:disabled { background: var(--surface-3); color: var(--text-muted); }
+
+/* сканер и поиск остаются над списком товаров */
+#shipmentBody { display: flex; flex-direction: column; }
+#shipmentBody > * { flex-shrink: 0; }
+#shipmentOverlay .modal-header { padding: 18px 16px 12px; }
+#shipmentOverlay .order-footer { padding: 12px 16px max(12px, env(safe-area-inset-bottom)); }
+.shipment-controls { display: grid; gap: 10px; }
+.shipment-scan-action { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; font-size: 1rem; }
+.shipment-scan-action svg { width: 24px; height: 24px; flex: 0 0 24px; }
+#shipmentFooter[hidden] { display: none; }
+.shipment-state { gap: 8px; margin-bottom: 14px; padding: 18px 16px; }
+.shipment-state strong { font-size: 1rem; line-height: 1.35; }
+.shipment-state[data-state="error"] .shipment-state-icon { background: var(--surface-2); color: var(--text-muted); }

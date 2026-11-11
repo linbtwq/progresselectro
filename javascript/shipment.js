@@ -1,242 +1,200 @@
-// ============================================================
-// javascript/shipment.js
-// ============================================================
-
 let _shipmentLoadSeq = 0;
-let shipmentLoading = false
-let shipmentSending = false
-let shipmentRequestId = null
-let shipmentItems = []
-let shipmentSearchQuery = ''
-let shipmentSearchNumeric = false;
-let shipmentSelectedOnly = false;
+let _shipmentSearchTimer = null;
+let _shipmentSearchAbort = null;
+let shipmentSending = false;
+let shipmentRequestId = null;
+let shipmentItems = [];
+let shipmentMatches = new Set();
 let shipmentReviewPending = false;
 
-// закрывает выбор товаров, сохраняя подтвержденные количества в черновике
+// отменяет текущий поиск при вводе нового запроса или закрытии окна
+function cancelShipmentSearch() {
+    clearTimeout(_shipmentSearchTimer);
+    _shipmentSearchAbort?.abort();
+    _shipmentSearchAbort = null;
+}
+
+// сохраняет выбранные позиции и закрывает подбор
 function closeShipmentModal(force = false) {
-    if (shipmentSending && force !== true) return
+    if (shipmentSending && force !== true) return;
+    cancelShipmentSearch();
     saveShipmentDraft();
     closeQuantityKeyboard(false);
     ++_shipmentLoadSeq;
-    ++_shipmentScanSeq;
-    shipmentLoading = false;
-    clearShipmentScanHighlight();
-    document.getElementById('shipmentOverlay')?.classList.remove('active')
-    document.body.classList.remove('modal-open'); // Убираем класс
-    shipmentRequestId = null
-    shipmentItems = []
-    shipmentSearchQuery = ''
-    shipmentSearchNumeric = false
-    shipmentSelectedOnly = false;
-    if (typeof getTopModal === 'function' && !getTopModal() && typeof restoreFocus === 'function') {
-        restoreFocus()
-    }
+    document.getElementById('shipmentOverlay')?.classList.remove('active');
+    document.body.classList.remove('modal-open');
+    shipmentItems = [];
+    shipmentMatches.clear();
+    shipmentRequestId = null;
+    if (typeof getTopModal === 'function' && !getTopModal() && typeof restoreFocus === 'function') restoreFocus();
 }
 
-async function openShipmentModal() {
-    if (!currentUser || shipmentLoading || shipmentSending) return
-    const seq = ++_shipmentLoadSeq;
-
-    rememberFocus()
-    const overlay = document.getElementById('shipmentOverlay')
-    const sub = document.getElementById('shipmentSub')
-    const body = document.getElementById('shipmentBody')
-    const summary = document.getElementById('shipmentSummary')
-    const sendBtn = document.getElementById('shipmentSendBtn')
-
-    if (!overlay) return
-
-    // === ФИКС КРЕСТИКА ===
-    const closeBtn = overlay.querySelector('.modal-close');
-    if (closeBtn) {
-        const newCloseBtn = closeBtn.cloneNode(true);
-        closeBtn.replaceWith(newCloseBtn);
-        newCloseBtn.addEventListener('click', closeShipmentModal);
-    }
-
-    // Добавляем класс, чтобы подвинуть сканер
+// открывает поиск без запроса списка товаров и показывает сохраненные позиции
+function openShipmentModal() {
+    const overlay = document.getElementById('shipmentOverlay');
+    if (!currentUser || shipmentSending || !overlay || overlay.classList.contains('active')) return;
+    ++_shipmentLoadSeq;
+    rememberFocus();
+    shipmentRequestId = newRequestId();
+    shipmentMatches.clear();
+    restoreShipmentDraft();
+    const close = overlay.querySelector('.modal-close');
+    if (close) close.onclick = () => closeShipmentModal();
     document.body.classList.add('modal-open');
-
-    shipmentRequestId = newRequestId()
-    shipmentItems = []
-    shipmentSearchQuery = ''
-
-    // Убираем "test" и пишем нормальный текст
-    sub.textContent = 'Вибір товарів'
-    
-    summary.textContent = ''
-    sendBtn.disabled = true
-
-    body.innerHTML = goodsSkeletonHtml('assort')
-    overlay.classList.add('active')
-    shipmentLoading = true
-
-    try {
-        const u = currentUser ? encodeURIComponent(currentUser.id) : ''
-        const res = await fetchWithTimeout(
-            `${apiBase}/shipment?u=${u}&t=${Date.now()}`,
-            { method: 'GET', cache: 'no-store' },
-            APP_CONFIG.loadTimeoutMs
-        )
-
-        if (!res.ok) throw new Error('Помилка мережі')
-        const data = await res.json()
-        if (seq !== _shipmentLoadSeq) return
-        if (!Array.isArray(data)) throw new Error('Невірна відповідь 1С')
-
-        if (isStubResponse(data)) {
-            body.innerHTML = emptyStateHtml(data[0].Name, '36px 20px', 'alert')
-            return
-        }
-
-        shipmentItems = data.map(it => ({
-            code: String(it.Code || ''),
-            name: String(it.Name || ''),
-            price: Number(it.price) || 0,
-            maxQty: Math.max(0, Number(String(it.quantity ?? 0).replace(',', '.')) || 0),
-            qty: 0
-        }))
-
-        if (!shipmentItems.length) {
-            body.innerHTML = emptyStateHtml('На складі немає товарів', '36px 20px', 'box')
-            return
-        }
-
-        restoreShipmentDraft();
-        renderShipmentBody()
-    } catch (err) {
-        if (seq !== _shipmentLoadSeq) return;
-        const message = err && err.message ? err.message : String(err)
-        body.innerHTML = `<div class="assort-error">Не вдалося завантажити товари: ${escapeHtml(message)}</div>`
-    } finally {
-        if (seq === _shipmentLoadSeq) shipmentLoading = false
-    }
+    renderShipmentBody();
+    overlay.classList.add('active');
 }
 
+// подключает поиск, сканер и клавиатуру количества
 function renderShipmentBody() {
-    const body = document.getElementById('shipmentBody')
-    if (!body) return
-
-    body.innerHTML = `
-        <div class="assort-top">
-            <div class="assort-search-wrap" >
-                <input type="search" class="assort-search" id="shipmentSearch"
-                       placeholder="Пошук товару..." autocomplete="off"
-                       value="${escapeHtml(shipmentSearchQuery)}"
-                       inputmode="${shipmentSearchNumeric ? 'numeric' : 'text'}"
->
-                <button type="button" class="dg-scan-btn numeric-toggle ${shipmentSearchNumeric ? 'active' : ''}"
-                        id="shipmentNumericBtn"
-                        aria-label="Цифрова клавіатура"
-                        aria-pressed="${shipmentSearchNumeric ? 'true' : 'false'}"
-                        title="Цифрова клавіатура">123</button>
-                <button type="button" class="dg-scan-btn" id="shipmentScanBtn" aria-label="Сканувати штрихкод"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8V4h4m10 0h4v4M3 16v4h4m10 0h4v-4M7 8v8m4-9v10m3-9v8m3-9v10"/></svg></button>
-            </div>
-            <button type="button" id="shipmentSelectedOnly" class="selected-filter" aria-pressed="false">Тільки вибрані <span id="shipmentSelectedCount">0</span></button>
-        </div>
-        <div id="shipmentGrid" class="assort-grid" >
-            ${renderShipmentRows()}
-        </div>
-        <div id="shipmentNoMatch" class="empty-state" style="display:none; margin-top:14px;">Нічого не знайдено</div>
-    `
-
-    const searchInput = document.getElementById('shipmentSearch')
-    if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            shipmentSearchQuery = searchInput.value.trim().toLowerCase()
-            applyShipmentSearch()
-        })
-        searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const q = searchInput.value.trim();
-                if (!q) return;
-                if (/^\d{8,}$/.test(q)) {
-                    searchShipmentByBarcode(q);
-                }
-            }
-        })
-    }
-
-    const numericBtn = document.getElementById('shipmentNumericBtn')
-    if (numericBtn && searchInput) {
-        numericBtn.addEventListener('click', () => {
-            shipmentSearchNumeric = !shipmentSearchNumeric
-            numericBtn.classList.toggle('active', shipmentSearchNumeric)
-            numericBtn.setAttribute('aria-pressed', shipmentSearchNumeric ? 'true' : 'false')
-            searchInput.setAttribute('inputmode', shipmentSearchNumeric ? 'numeric' : 'text')
-            searchInput.focus()
-        })
-    }
-
-    document.getElementById('shipmentSelectedOnly').addEventListener('click', () => {
-        shipmentSelectedOnly = !shipmentSelectedOnly;
-        document.getElementById('shipmentSelectedOnly').setAttribute('aria-pressed', String(shipmentSelectedOnly));
-        applyShipmentSearch();
+    const searchIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 5 5" stroke-linecap="round"/></svg>';
+    document.getElementById('shipmentBody').innerHTML = [
+        '<div class="assort-top shipment-controls">',
+        '<button type="button" class="action-btn shipment-scan-action" id="shipmentScanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 8V4h4m10 0h4v4M3 16v4h4m10 0h4v-4M7 8v8m4-9v10m3-9v10"/></svg>Сканувати штрихкод</button>',
+        '<div class="shipment-search-field">' + searchIcon,
+        '<input type="search" class="assort-search" id="shipmentSearch" placeholder="Введіть назву або код" aria-label="Пошук товару" autocomplete="off"></div>',
+        '</div><p id="shipmentSearchStatus" class="shipment-search-status" role="status"></p>',
+        '<div class="shipment-state" id="shipmentEmpty" role="status" hidden><span class="shipment-state-icon">' + searchIcon + '</span><strong></strong><span class="shipment-state-detail"></span></div>',
+        '<h4 class="shipment-selected-heading" id="shipmentSelectedHeading" hidden>У замовленні</h4>',
+        '<div id="shipmentGrid" class="assort-grid"></div>'
+    ].join('');
+    const input = document.getElementById('shipmentSearch');
+    input.addEventListener('input', () => {
+        cancelShipmentSearch();
+        shipmentMatches.clear();
+        refreshShipmentRows();
+        const query = input.value.trim();
+        if (query) _shipmentSearchTimer = setTimeout(() => runShipmentSearch(query), 300);
     });
-    document.getElementById('shipmentScanBtn')?.addEventListener('click', openBarcodeScanner);
-    const grid = document.getElementById('shipmentGrid')
-    grid.addEventListener('click', e => {
-        const input = e.target.closest('.qty-input');
-        if (input) openQuantityKeyboard(input);
+    input.addEventListener('keydown', event => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        const query = input.value.trim();
+        if (query) runShipmentSearch(query);
     });
-    grid.addEventListener('keydown', e => {
-        if (e.target.matches('.qty-input') && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault(); openQuantityKeyboard(e.target);
-        }
+    document.getElementById('shipmentScanBtn').addEventListener('click', openBarcodeScanner);
+    const grid = document.getElementById('shipmentGrid');
+    grid.addEventListener('click', event => {
+        const quantity = event.target.closest('.qty-input');
+        if (quantity) openShipmentQuantity(quantity);
+        const button = event.target.closest('.qty-btn');
+        if (!button) return;
+        const row = button.closest('[data-shipment-row]');
+        const index = Number(row.dataset.idx);
+        const item = shipmentItems[index];
+        if (!item) return;
+        const next = Number((item.qty + Number(button.dataset.step)).toFixed(3));
+        item.qty = Math.min(item.maxQty, Math.max(0, next));
+        row.querySelector('.qty-input').value = item.qty;
+        updateShipmentRow(row, index);
+        updateShipmentSummary();
     });
-
-    grid.addEventListener('click', e => {
-        const btn = e.target.closest('.qty-btn')
-        if (!btn) return
-        const row = btn.closest('[data-shipment-row]')
-        if (!row) return
-        const idx = Number(row.dataset.idx)
-        if (!shipmentItems[idx]) return
-        const step = Number(btn.dataset.step) || 0
-        const maxQ = shipmentItems[idx].maxQty
-        // убирает хвост двоичной арифметики при изменении дробного количества
-        let next = Number((shipmentItems[idx].qty + step).toFixed(6))
-        if (next < 0) next = 0
-        if (next > maxQ) next = maxQ
-        shipmentItems[idx].qty = next
-        const inp = row.querySelector('.qty-input')
-        if (inp) inp.value = next
-        updateShipmentRow(row, idx)
-        updateShipmentSummary()
-    })
-
-    grid.addEventListener('input', e => {
-        if (!e.target.classList.contains('qty-input')) return
-        const row = e.target.closest('[data-shipment-row]')
-        if (!row) return
-        const idx = Number(row.dataset.idx)
-        if (!shipmentItems[idx]) return
-        // сохраняет дробную часть при вводе количества
-        e.target.value = e.target.value.replace(',', '.').replace(/[^\d.]/g, '')
-        let val = Number(e.target.value) || 0
-        const maxQ = shipmentItems[idx].maxQty
-        if (val > maxQ) val = maxQ
-        shipmentItems[idx].qty = val
-        updateShipmentRow(row, idx)
-        updateShipmentSummary()
-    })
-
-    grid.addEventListener('focusout', e => {
-        if (!e.target.classList.contains('qty-input')) return
-        const row = e.target.closest('[data-shipment-row]')
-        if (!row) return
-        const idx = Number(row.dataset.idx)
-        if (shipmentItems[idx]) e.target.value = shipmentItems[idx].qty
-    })
-
-    document.querySelectorAll('#shipmentGrid [data-shipment-row]').forEach(row => {
-        updateShipmentRow(row, Number(row.dataset.idx))
-    })
-
-    applyShipmentSearch()
-    updateShipmentSummary()
+    grid.addEventListener('keydown', event => {
+        if (!event.target.matches('.qty-input') || !['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        openShipmentQuantity(event.target);
+    });
+    refreshShipmentRows();
+    updateShipmentSummary();
 }
+
+// сохраняет текущую строку при открытии клавиатуры во время поиска
+function openShipmentQuantity(input) {
+    cancelShipmentSearch();
+    document.getElementById('shipmentSearchStatus').hidden = true;
+    openQuantityKeyboard(input);
+}
+
+// обновляет сетку из выбранных позиций и совпадений последнего запроса
+function refreshShipmentRows(message = '', state = '') {
+    const grid = document.getElementById('shipmentGrid');
+    const status = document.getElementById('shipmentSearchStatus');
+    if (!grid || !status) return;
+    shipmentItems = shipmentItems.filter(item => item.qty > 0 || shipmentMatches.has(item.code));
+    grid.innerHTML = renderShipmentRows();
+    grid.querySelectorAll('[data-shipment-row]').forEach(row => updateShipmentRow(row, Number(row.dataset.idx)));
+    status.textContent = message;
+    status.hidden = !message;
+    updateShipmentEmptyState(state);
+}
+
+// показывает выбранные позиции или сообщение о результате поиска
+function updateShipmentEmptyState(state = '') {
+    const empty = document.getElementById('shipmentEmpty');
+    const heading = document.getElementById('shipmentSelectedHeading');
+    if (!empty || !heading) return;
+    const query = document.getElementById('shipmentSearch').value.trim();
+    const selected = shipmentItems.some(item => item.qty > 0);
+    heading.hidden = Boolean(query) || !selected;
+    const copy = {
+        missing: ['Нічого не знайдено', 'Перевірте назву чи код або спробуйте сканер'],
+        error: ['Не вдалося завантажити результати', 'Спробуйте повторити пошук']
+    };
+    const content = copy[state];
+    empty.hidden = !content;
+    if (!content) return;
+    empty.setAttribute('data-state', state);
+    empty.querySelector('strong').textContent = content[0];
+    empty.querySelector('.shipment-state-detail').textContent = content[1];
+}
+
+// ищет только по запросу, отменяя устаревший поиск при каждом новом вводе
+async function runShipmentSearch(query, scanned = false) {
+    cancelShipmentSearch();
+    const controller = new AbortController();
+    _shipmentSearchAbort = controller;
+    shipmentMatches.clear();
+    refreshShipmentRows('Шукаємо товари…');
+    try {
+        const barcode = scanned || /^\d{8,}$/.test(query);
+        let result = await remoteSearchGoods(query, controller.signal, barcode, 'customer-order');
+        if (barcode && !scanned && !result.items.length && !controller.signal.aborted) {
+            result = await remoteSearchGoods(query, controller.signal, false, 'customer-order');
+        }
+        if (controller.signal.aborted || _shipmentSearchAbort !== controller) return;
+        if (typeof quantityDraft !== 'undefined' && quantityDraft) {
+            document.getElementById('shipmentSearchStatus').hidden = true;
+            return;
+        }
+        let lastCode;
+        for (const row of result.items) {
+            const code = String(row.Code ?? '');
+            const name = String(row.Name ?? '');
+            const price = Number(row.price);
+            const maxQty = Number(row.quantity);
+            if (!code || !name || !Number.isFinite(price) || price <= 0 || !Number.isFinite(maxQty) || maxQty <= 0) continue;
+            shipmentMatches.add(code);
+            lastCode = code;
+            const item = shipmentItems.find(candidate => candidate.code === code);
+            if (item) Object.assign(item, {name, price, maxQty, qty: Math.min(item.qty, maxQty)});
+            else shipmentItems.push({code, name, price, maxQty, qty:0});
+        }
+        const message = shipmentMatches.size && result.truncated ? 'Уточніть пошук, щоб звузити результати' : '';
+        refreshShipmentRows(message, shipmentMatches.size ? '' : 'missing');
+        updateShipmentSummary();
+        if (scanned && shipmentMatches.size === 1) {
+            const index = shipmentItems.findIndex(item => item.code === lastCode);
+            const input = document.querySelector('#shipmentGrid [data-idx="' + index + '"] .qty-input');
+            if (input) openShipmentQuantity(input);
+        }
+    } catch (error) {
+        if (!controller.signal.aborted && _shipmentSearchAbort === controller) {
+            refreshShipmentRows('', 'error');
+            console.warn('[customer order search]', error);
+        }
+    }
+}
+
+// передает код сканера в поиск по заказу
+function searchShipmentByBarcode(barcode) {
+    const query = String(barcode || '').replace(/\s+/g, '');
+    const input = document.getElementById('shipmentSearch');
+    if (!query || !input) return;
+    input.value = query;
+    return runShipmentSearch(query, true);
+}
+
+
 
 function renderShipmentRows() {
     return shipmentItems.map((it, i) => {
@@ -269,39 +227,25 @@ function updateShipmentSummary() {
     let count = 0, sum = 0
     shipmentItems.forEach(it => { if (it.qty > 0) { count++; sum += it.qty * it.price; } })
 
-    const counter = document.getElementById('shipmentSelectedCount');
-    if (counter) counter.textContent = count;
+    // итог и кнопка появляются после выбора первой позиции
+    const footer = document.getElementById('shipmentFooter');
+    if (footer) footer.hidden = count === 0;
     saveShipmentDraft();
-    if (shipmentSelectedOnly) applyShipmentSearch();
+    if (!document.getElementById('shipmentSearch')?.value?.trim()) updateShipmentEmptyState();
+
     if (!count) {
-        summary.textContent = 'Вкажіть кількість товарів'
+        summary.textContent = ''
         btn.disabled = true
         return
     }
-    summary.innerHTML = `<span class="summary-caption">Разом<small>${count} поз.</small></span><b>${money(sum)} ₴</b>`
+    summary.innerHTML = `<span>${count} ${count === 1 ? "позиція" : "поз."}</span><b>${money(sum)} ₴</b>`
     btn.disabled = shipmentSending
-}
-
-function applyShipmentSearch() {
-    const q = shipmentSearchQuery
-    let shown = 0
-    document.querySelectorAll('#shipmentGrid [data-shipment-row]').forEach(row => {
-        const idx = Number(row.dataset.idx)
-        const it = shipmentItems[idx]
-        if (!it) return
-        const hay = (it.name + ' ' + it.code).toLowerCase()
-        const ok = (!q || hay.includes(q)) && (!shipmentSelectedOnly || it.qty > 0)
-        row.style.display = ok ? '' : 'none'
-        if (ok) shown++
-    })
-    const empty = document.getElementById('shipmentNoMatch');
-    empty.style.display = shown ? 'none' : 'block';
-    empty.textContent = shipmentSelectedOnly ? 'Вибраних товарів за цим запитом немає' : 'Нічого не знайдено';
 }
 
 // сначала показывает снимок выбранных позиций и отправляет только после подтверждения
 async function submitShipment() {
     if (!currentUser || shipmentSending || shipmentReviewPending) return;
+    cancelShipmentSearch();
     closeQuantityKeyboard();
 
     const items = [];
@@ -320,7 +264,7 @@ async function submitShipment() {
     overlay.inert = true;
     let confirmed = false;
     try {
-        confirmed = await showConfirmDialog({title:'Перевірте накладну',
+        confirmed = await showConfirmDialog({title:'Перевірте замовлення',
             message: 'Вибрано позицій: ' + items.length,
             receiptItems: items, receiptTotal: total, okText:'Відправити в 1С', cancelText:'Редагувати'});
     } finally { shipmentReviewPending = false; overlay.inert = false; }
@@ -343,7 +287,8 @@ async function submitShipment() {
     shipmentSending = true;
 
     await submitDocument({
-        endpoint: 'shipment',
+        endpoint: 'customer-order',
+        validateResponse: response => response?.ok === true && response.document_type === 'customer_order' && Boolean(response.doc_number),
         payload, btn, closeBtn,
         successText: '',
         errorPrefix: 'Не вдалося додати',
@@ -354,132 +299,12 @@ async function submitShipment() {
             shipmentSending = false;
             shipmentItems = [];
             closeShipmentModal();
-            showConfirmDialog({title: conductError ? 'Накладну створено, але не проведено' : 'Документ створено',
-                message: conductError ? 'Не створюйте накладну повторно. Потрібно перевірити її в обліку.' : 'Сервер підтвердив створення накладної.',
+            showConfirmDialog({title: conductError ? 'Замовлення створено з помилкою' : 'Замовлення створено',
+                message: conductError ? 'Перевірте замовлення в 1С перед повторною відправкою.' : 'Сервер підтвердив створення замовлення.',
                 documentResult: shipmentDocumentResult(response, items, conductError), okText: 'Зрозуміло', cancelText: 'Закрити'});
         }
     });
 
     shipmentSending = false;
     if (shipmentItems.length) updateShipmentSummary();
-}
-
-let _shipmentHighlightTimer = null;
-let _shipmentScanSeq = 0;
-
-async function searchShipmentByBarcode(barcode) {
-    const searchInput = document.getElementById('shipmentSearch');
-    if (!searchInput) return;
-
-    const cleanBarcode = String(barcode || '').replace(/\s+/g, '');
-    if (!cleanBarcode) {
-        showToast('Порожній штрих-код', true);
-        return;
-    }
-
-    const seq = ++_shipmentScanSeq;
-    clearShipmentScanHighlight();
-
-    searchInput.value = '';
-    searchInput.disabled = true;
-
-    shipmentSearchQuery = '';
-    applyShipmentSearch();
-
-    try {
-        const u = currentUser ? encodeURIComponent(currentUser.id) : '';
-        const res = await fetchWithTimeout(
-            `${apiBase}/goods?u=${u}&barcode=${encodeURIComponent(cleanBarcode)}&t=${Date.now()}`,
-            { method: 'GET', cache: 'no-store' },
-            APP_CONFIG.loadTimeoutMs
-        );
-
-        if (!res.ok) {
-            const errText = await res.text().catch(() => '');
-            throw new Error((errText && errText.slice(0, 160)) || 'Помилка мережі');
-        }
-
-        const data = await res.json();
-        const items = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
-
-        if (seq !== _shipmentScanSeq) return;
-
-        if (!items.length) {
-            showToast(`Товар зі штрих-кодом ${cleanBarcode} не знайдено в номенклатурі 1С`, true);
-            return;
-        }
-
-        const foundItem = normalizeGoods(items[0]);
-        const foundName = String(foundItem.name || '').trim() || 'Без назви';
-        const idx = findShipmentItemIndex(foundItem);
-
-        if (idx < 0) {
-            const stock = Number(foundItem.stock);
-            const stockText = isFinite(stock) && stock > 0 ? ` (залишок у 1С: ${stock})` : '';
-            showToast(`Товар «${foundName}» знайдено в номенклатурі, але на складі немає залишку${stockText}`, true);
-            return;
-        }
-
-        const shipmentItem = shipmentItems[idx];
-        const priceIsZero = !Number(shipmentItem.price);
-        shipmentSelectedOnly = false;
-        document.getElementById('shipmentSelectedOnly')?.setAttribute('aria-pressed', 'false');
-        applyShipmentSearch();
-        highlightShipmentRow(idx);
-        const input = document.querySelector(`#shipmentGrid [data-idx="${idx}"] .qty-input`);
-        if (input) openQuantityKeyboard(input);
-
-        if (priceIsZero) {
-            showToast(`Знайдено: ${foundName}. Увага: ціна в 1С не вказана (0 ₴)`, true);
-        } else {
-            showToast(`Знайдено: ${foundName}`, false);
-        }
-
-    } catch (err) {
-        if (seq !== _shipmentScanSeq) return;
-        const msg = err && err.message ? err.message : String(err);
-        showToast(`Помилка пошуку: ${msg}`, true);
-    } finally {
-        if (seq === _shipmentScanSeq) {
-            searchInput.disabled = false;
-        }
-    }
-}
-
-function findShipmentItemIndex(foundItem) {
-    const normCode = normalizeCode(foundItem.code);
-    const normName = String(foundItem.name || '').trim().toLowerCase();
-
-    if (normCode) {
-        const i = shipmentItems.findIndex(it => normalizeCode(it.code) === normCode);
-        if (i >= 0) return i;
-    }
-    if (normName) {
-        const i = shipmentItems.findIndex(it => String(it.name || '').trim().toLowerCase() === normName);
-        if (i >= 0) return i;
-    }
-    return -1;
-}
-
-function clearShipmentScanHighlight() {
-    if (_shipmentHighlightTimer) {
-        clearTimeout(_shipmentHighlightTimer);
-        _shipmentHighlightTimer = null;
-    }
-    document.querySelectorAll('#shipmentGrid .assort-row.scanned').forEach(row => {
-        row.classList.remove('scanned');
-    });
-}
-
-function highlightShipmentRow(idx) {
-    const row = document.querySelector(`#shipmentGrid [data-shipment-row][data-idx="${idx}"]`);
-    if (!row) return;
-    row.style.display = '';
-    row.classList.add('scanned');
-    try { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { try { row.scrollIntoView(); } catch (e2) {} }
-    if (navigator.vibrate) navigator.vibrate(40);
-    _shipmentHighlightTimer = setTimeout(() => {
-        row.classList.remove('scanned');
-        _shipmentHighlightTimer = null;
-    }, 2200);
 }

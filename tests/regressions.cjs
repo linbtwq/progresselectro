@@ -48,5 +48,47 @@ function context(extra = {}) {
     const scripts=[...source('index.html').matchAll(/<script src="([^"]+)"/g)].map(m=>m[1]);
     assert.deepEqual(scripts.filter(p=>!source('sw.js').includes("'./"+p+"'")),[]);
     assert(source('javascript/app/events.js').includes("addEventListener('click', submitShipment)"));
-    console.log('PASS: syntax, 301-result pagination, removed catalog, stale barcode response, logout during load, late camera permission, Escape, offline asset coverage, shipment binding');
+    const orderElements = new Map();
+    const orderElement = id => {
+        if (!orderElements.has(id)) {
+            const classes = new Set();
+            orderElements.set(id, {classList:{add:name=>classes.add(name),remove:name=>classes.delete(name),contains:name=>classes.has(name)},
+                addEventListener(){},setAttribute(){},querySelector:()=>null,querySelectorAll:()=>[]});
+        }
+        return orderElements.get(id);
+    };
+    orderElement('shipmentSearch').value = '';
+    orderElement('shipmentEmpty').querySelector = selector => orderElement(selector);
+    const orderRequests = [];
+    let quantityOpened = false;
+    const order = context({currentUser:{id:'a'},document:{body:orderElement('body'),getElementById:orderElement,querySelector:()=>({})},
+        rememberFocus(){},restoreShipmentDraft(){},saveShipmentDraft(){},newRequestId:()=> 'order-id',
+        openBarcodeScanner(){},openQuantityKeyboard(){quantityOpened=true;},renderProductRow:()=>'',fmt:String,money:String,
+        remoteSearchGoods(query,signal,barcode,endpoint) {
+            const request = deferred();
+            orderRequests.push({query,signal,barcode,endpoint,resolve:request.resolve});
+            return request.promise;
+        }});
+    order.read('javascript/shipment.js');
+    order.openShipmentModal();
+    assert.equal(orderRequests.length,0);
+    assert.equal(orderElement('shipmentEmpty').hidden,true);
+    assert.equal(orderElement('shipmentFooter').hidden,true);
+    assert(orderElement('shipmentBody').innerHTML.includes('shipmentScanBtn'));
+    order.run("shipmentItems=[{code:'1',name:'Обране',qty:1.25,price:2,maxQty:3}]");
+    order.updateShipmentSummary();
+    assert.equal(orderElement('shipmentFooter').hidden,false);
+    const oldOrderSearch = order.runShipmentSearch('старый');
+    const scannedOrderSearch = order.searchShipmentByBarcode('4820000001234');
+    assert.equal(orderRequests[0].signal.aborted,true);
+    assert.equal(orderRequests[1].endpoint,'customer-order');
+    assert.equal(orderRequests[1].barcode,true);
+    orderRequests[1].resolve({items:[{Code:'2',Name:'Знайдено',price:3,quantity:4}]});
+    await scannedOrderSearch;
+    orderRequests[0].resolve({items:[{Code:'3',Name:'Старий',price:5,quantity:6}]});
+    await oldOrderSearch;
+    assert.equal(quantityOpened,true);
+    assert.equal(order.run("shipmentItems.find(item=>item.code==='1').qty"),1.25);
+    assert.equal(order.run("shipmentItems.some(item=>item.code==='3')"),false);
+    console.log('PASS: syntax, pagination, stale responses, logout, scanner lifecycle, modal keys, offline assets, instant order opening, scoped barcode lookup, selected positions');
 })().catch(error=>{console.error(error);process.exitCode=1;});

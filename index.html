@@ -84,7 +84,7 @@
             <span class="menu-value" id="fontScaleValue">A</span>
         </button>
         <p class="settings-section">Документи та дані</p>
-        <button id="invoiceHistoryBtn" class="menu-item"><span>Історія накладних</span><span class="menu-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5v18h14V3h-3M8 3v4h8V3H8ZM8 12h8M8 16h5"/></svg></span></button>
+        <button id="invoiceHistoryBtn" class="menu-item"><span>Історія документів</span><span class="menu-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5v18h14V3h-3M8 3v4h8V3H8ZM8 12h8M8 16h5"/></svg></span></button>
         <button id="clearCacheBtn" class="menu-item danger">
             <span>Очистити кеш</span>
             <span class="menu-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg></span>
@@ -155,15 +155,14 @@
         <div class="modal-box assort-box">
             <div class="modal-header">
                 <div class="assort-head">
-                    <h3>Додати</h3>
-                    <div class="assort-sub" id="shipmentSub"></div>
+                    <h3>Нове замовлення</h3>
                 </div>
                 <button class="modal-close" type="button" aria-label="Закрити">✕</button>
             </div>
             <div class="modal-body" id="shipmentBody"></div>
-            <div class="modal-footer order-footer">
+            <div class="modal-footer order-footer" id="shipmentFooter" hidden>
                 <div class="order-summary" id="shipmentSummary"></div>
-                <button class="action-btn btn-success" type="button" id="shipmentSendBtn" disabled>Додати в 1С</button>
+                <button class="action-btn btn-success" type="button" id="shipmentSendBtn" disabled>Створити замовлення</button>
             </div>
         </div>
     </div>

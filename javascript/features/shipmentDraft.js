@@ -1,34 +1,29 @@
 // возвращает отдельный ключ черновика для каждого пользователя
-function shipmentDraftKey() { return currentUser ? 'shipmentDraft:' + currentUser.id : null; }
+function shipmentDraftKey() { return currentUser ? 'customerOrderDraft:' + currentUser.id : null; }
 
 // сохраняет только подтвержденные количества и идентификатор повторной отправки
 function saveShipmentDraft() {
     const key = shipmentDraftKey();
-    if (!key || shipmentLoading) return;
-    const items = shipmentItems.filter(item => item.qty > 0).map(item => ({code:item.code, qty:item.qty}));
+    if (!key) return;
+    const items = shipmentItems.filter(item => item.qty > 0).map(({code, name, price, maxQty, qty}) => ({code, name, price, maxQty, qty}));
     try {
         if (items.length) localStorage.setItem(key, JSON.stringify({items, requestId:shipmentRequestId, at:Date.now()}));
         else localStorage.removeItem(key);
     } catch (e) { showToast('Не вдалося зберегти чернетку на пристрої', true); }
 }
 
-// восстанавливает черновик по актуальным остаткам и предупреждает об изменениях
+// восстанавливает выбранные строки из сохраненного черновика заказа
 function restoreShipmentDraft() {
     const key = shipmentDraftKey();
     const saved = key ? readJsonSafe(key, null) : null;
-    if (!saved || !Array.isArray(saved.items)) return;
-    let changed = 0, restored = 0;
-    for (const selected of saved.items) {
-        const item = shipmentItems.find(item => String(item.code) === String(selected.code));
-        const qty = Math.max(0, Number(String(selected.qty ?? 0).replace(',', '.')) || 0);
-        if (!item) { changed++; continue; }
-        item.qty = Math.min(qty, item.maxQty);
-        if (item.qty !== qty) changed++;
-        if (item.qty) restored++;
+    shipmentItems = Array.isArray(saved?.items) ? saved.items.filter(item =>
+        item && typeof item.code === 'string' && typeof item.name === 'string' &&
+        Number.isFinite(item.price) && item.price > 0 && Number.isFinite(item.maxQty) &&
+        Number.isFinite(item.qty) && item.qty > 0 && item.qty <= item.maxQty
+    ) : [];
+    if (shipmentItems.length && typeof saved.requestId === 'string' && saved.requestId) {
+        shipmentRequestId = saved.requestId;
     }
-    if (typeof saved.requestId === 'string' && saved.requestId && !changed) shipmentRequestId = saved.requestId;
-    if (changed) showToast('Чернетку відновлено. Залишки змінилися: перевірте кількості.', true);
-    else if (restored) showToast('Чернетку відновлено');
 }
 
 // удаляет черновик после подтвержденного создания документа

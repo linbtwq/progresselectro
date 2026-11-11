@@ -3,16 +3,16 @@ const data=new Map(); const ctx=vm.createContext({currentUser:{id:'a'},localStor
 for(const p of ['javascript/features/recentSearches.js','javascript/features/shipmentDraft.js'])vm.runInContext(fs.readFileSync(p,'utf8'),ctx);
 ctx.rememberRecentSearch('ка');ctx.rememberRecentSearch('кабель');
 assert.deepEqual(Array.from(ctx.readRecentSearches()),['кабель']);
-ctx.shipmentItems=[{code:'007',qty:5,maxQty:10,price:2}];ctx.saveShipmentDraft();
+ctx.shipmentItems=[{code:'007',name:'кабель',qty:5,maxQty:10,price:2}];ctx.saveShipmentDraft();
 ctx.shipmentItems=[{code:'007',qty:0,maxQty:10,price:2}];ctx.restoreShipmentDraft();assert.equal(ctx.shipmentItems[0].qty,5);
-ctx.shipmentItems=[{code:'007',qty:0,maxQty:2,price:2}];ctx.restoreShipmentDraft();assert.equal(ctx.shipmentItems[0].qty,2);
-ctx.currentUser={id:'b'};ctx.shipmentItems=[{code:'007',qty:0,maxQty:10}];ctx.restoreShipmentDraft();assert.equal(ctx.shipmentItems[0].qty,0);assert.equal(ctx.readRecentSearches().length,0);
+assert.equal(ctx.shipmentItems[0].maxQty,10);
+ctx.currentUser={id:'b'};ctx.shipmentItems=[{code:'007',qty:0,maxQty:10}];ctx.restoreShipmentDraft();assert.equal(ctx.shipmentItems.length,0);assert.equal(ctx.readRecentSearches().length,0);
 const details=ctx.shipmentResultDetails({doc_number:'123',sum:10,doc_date:'2026-10-30'},[{qty:5,price:2}],'test');assert(details.some(s=>s.includes('123')));assert(details.some(s=>s.includes('test')));
 // дробный черновик восстанавливается точно и ограничивается дробным остатком
-ctx.currentUser={id:'a'};ctx.shipmentItems=[{code:'007',qty:1.25,maxQty:2.5}];ctx.saveShipmentDraft();
+ctx.currentUser={id:'a'};ctx.shipmentItems=[{code:'007',name:'кабель',qty:1.25,maxQty:2.5,price:2}];ctx.saveShipmentDraft();
 ctx.shipmentItems=[{code:'007',qty:0,maxQty:2.5}];ctx.restoreShipmentDraft();assert.equal(ctx.shipmentItems[0].qty,1.25);
-ctx.shipmentItems=[{code:'007',qty:0,maxQty:0.75}];ctx.restoreShipmentDraft();assert.equal(ctx.shipmentItems[0].qty,0.75);
-ctx.currentUser={id:'a'};ctx.clearShipmentDraft();assert(!data.has('shipmentDraft:a'));
+assert.equal(ctx.shipmentItems[0].maxQty,2.5);
+ctx.currentUser={id:'a'};ctx.clearShipmentDraft();assert(!data.has('customerOrderDraft:a'));
 
 // проверяет представление цен, безопасную подсветку и календарные даты без зависимости от текущего дня
 const presentation = vm.createContext({Intl,Date});
@@ -27,4 +27,4 @@ assert.equal(presentation.formatInvoiceDate('2026-11-02 23:45:00',null,reference
 assert.equal(presentation.formatInvoiceDate('2026-10-30 10:24:00',null,referenceDate),'30.10.2026, 10:24');
 assert.equal(presentation.formatInvoiceDate('2026-02-30 10:00:00',null,referenceDate),'Дата не вказана');
 
-console.log('PASS: recent queries, draft restore, stock changes, user isolation, receipt fields, draft cleanup, prices, safe highlights, calendar dates');
+console.log('PASS: recent queries, order draft restore, user isolation, receipt fields, draft cleanup, prices, safe highlights, calendar dates');
