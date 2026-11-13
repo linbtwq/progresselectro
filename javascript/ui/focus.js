@@ -69,12 +69,10 @@ function closeTopModal() {
 
     // задел под будущие модалки
     if (m.id === 'settingsMenu') closeSettingsPanel()
-    else if (m.id === 'invoiceHistoryOverlay') closeInvoiceHistory()
     else if (m.id === 'quantityKeyboardOverlay') closeQuantityKeyboard()
     else if (m.id === 'barcodeScannerOverlay') closeBarcodeScanner()
     else if (m.id === 'modalOverlay' && typeof closeModal === 'function') closeModal()
     else if (m.id === 'stockOverlay' && typeof closeStockModal === 'function') closeStockModal()
-    else if (m.id === 'shipmentOverlay' && typeof closeShipmentModal === 'function') closeShipmentModal()
     else if (m.id === 'recountOverlay' && typeof closeRecountModal === 'function') closeRecountModal()
     else if (m.id === 'noteOverlay' && typeof closeNoteModal === 'function') closeNoteModal()
     else if (m.id === 'assortOverlay' && typeof closeAssortModal === 'function') closeAssortModal()
@@ -112,7 +110,7 @@ function trapFocus(e) {
     const modal = getTopModal()
     if (!modal) return
 
-    const box = modal.querySelector('.modal-box')
+    const box = modal.querySelector('.modal-box, .scanner-box')
     if (!box) return
 
     const focusables = Array.from(box.querySelectorAll(FOCUSABLE)).filter(el => el.offsetParent !== null)
@@ -149,7 +147,7 @@ function onKeyDown(e) {
 
         // в html поле поиска называется goodsSearch
         const si = document.getElementById('goodsSearch')
-        if (inField && si && si.value) {
+        if (document.activeElement === si && si?.value) {
             e.preventDefault()
             si.value = ''
             document.getElementById('searchClear').hidden = true
@@ -162,8 +160,9 @@ function onKeyDown(e) {
 
     // слэш или ctrl k фокусирует поиск
     if (e.key === '/' || (e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey))) {
+        if (getTopModal() || document.querySelector('dialog[open]') || !currentUser || shipmentSending || shipmentReviewPending) return
         e.preventDefault()
-        document.getElementById('goodsSearch')?.focus()
+        openCatalogPage(true)
         return
     }
 

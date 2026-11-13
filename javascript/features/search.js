@@ -9,6 +9,8 @@ let _goodsShown = 0;
 let _goodsQuery = '';
 let _goodsTruncated = false;
 function cancelGoodsSearch() {
+    const results = document.getElementById('resultsContainer');
+    if (results?.dataset) delete results.dataset.scanSelection;
     clearTimeout(_searchTimer);
     ++_searchSeq;
     if (_searchAbort) _searchAbort.abort();
@@ -19,7 +21,8 @@ function showMoreGoods() {
     if (!container || _goodsShown >= _goodsResults.length) return;
     container.querySelector('.show-more-wrap')?.remove();
     const end = Math.min(_goodsShown + GOODS_PAGE_LIMIT, _goodsResults.length);
-    container.insertAdjacentHTML('beforeend', _goodsResults.slice(_goodsShown, end).map((item, i) => goodsCardHtml(item, i, _goodsQuery)).join(''));
+    const ordered = typeof shipmentDraftQuantities === 'function' ? shipmentDraftQuantities() : new Map();
+    container.insertAdjacentHTML('beforeend', _goodsResults.slice(_goodsShown, end).map((item, i) => goodsCardHtml(item, i, _goodsQuery, ordered.get(item.code))).join(''));
     _goodsShown = end;
     if (end === _goodsResults.length && !_goodsTruncated) container.insertAdjacentHTML('beforeend', goodsListEndHtml());
     if (end < _goodsResults.length) container.insertAdjacentHTML('beforeend',
@@ -33,7 +36,12 @@ function buildGoodsIndex() {
     goodsByBarcode.clear();
     for (const g of goodsData) {
         if (g.code) goodsByCode.set(String(g.code), g);
-        if (g.barcode) goodsByBarcode.set(String(g.barcode), g);
+        for (const barcode of new Set([g.barcode, ...(g.barcodes || [])])) {
+            if (!barcode) continue;
+            const matches = goodsByBarcode.get(barcode) || [];
+            matches.push(g);
+            goodsByBarcode.set(barcode, matches);
+        }
     }
 }
 
@@ -48,7 +56,7 @@ function localSearchGoods(query) {
         const code = String(g.code || '').toLowerCase();
         const barcode = String(g.barcode || '').toLowerCase();
         
-        if (name.includes(q) || code.includes(q) || barcode.includes(q)) {
+        if (name.includes(q) || code.includes(q) || barcode.includes(q) || g.barcodes?.some(value => value.toLowerCase().includes(q))) {
             results.push(g);
         }
     }
@@ -56,9 +64,9 @@ function localSearchGoods(query) {
 }
 
 // повторяет только безопасный поиск при временном сбое, не повторяя отправку документов
-async function remoteSearchGoods(query, signal, byBarcode = false, endpoint = 'goods') {
+async function remoteSearchGoods(query, signal, byBarcode = false, endpoint = 'goods', exact = false) {
     for (let attempt = 0; attempt < 2; attempt++) {
-        try { return await requestGoodsSearch(query, signal, byBarcode, endpoint); }
+        try { return await requestGoodsSearch(query, signal, byBarcode, endpoint, exact); }
         catch (error) {
             if (signal?.aborted || error.name === 'AbortError') throw error;
             const retryable = error instanceof TypeError || error instanceof SyntaxError || error.code === 'timeout' || [408,429,500,502,503,504].includes(error.status);
@@ -69,7 +77,7 @@ async function remoteSearchGoods(query, signal, byBarcode = false, endpoint = 'g
 }
 
 // ограничивает время всего запроса, включая чтение json, и снимает обработчики отмены
-async function requestGoodsSearch(query, signal, byBarcode, endpoint) {
+async function requestGoodsSearch(query, signal, byBarcode, endpoint, exact) {
     const controller = new AbortController();
     const abortError = () => Object.assign(new Error('Пошук скасовано'), {name:'AbortError'});
     let rejectInterrupted;
@@ -85,18 +93,30 @@ async function requestGoodsSearch(query, signal, byBarcode, endpoint) {
         const request = (async () => {
             const u = currentUser ? encodeURIComponent(currentUser.id) : '';
             const parameter = byBarcode ? 'barcode' : 'q';
-            const url = apiBase + '/' + endpoint + '?u=' + u + '&' + parameter + '=' + encodeURIComponent(query) + '&t=' + Date.now();
+            const url = apiBase + '/' + endpoint + '?u=' + u + '&' + parameter + '=' + encodeURIComponent(query) + (exact ? '&exact=1' : '') + '&t=' + Date.now();
             const response = await fetchWithTimeout(url, {method:'GET', cache:'no-store', signal:controller.signal}, APP_CONFIG.loadTimeoutMs);
             if (!response.ok) {
                 // текст отказа помогает отличить ограничение поиска от отсутствия связи
                 const detail = typeof response.text === 'function' ? (await response.text()).slice(0, 240) : '';
-                throw Object.assign(new Error('Пошук: HTTP ' + response.status + (detail ? ' · ' + detail : '')), {status:response.status});
+                // передает окну заказа понятную причину ошибки настройки
+                let orderDetail;
+                if (endpoint === 'customer-order' && response.status === 400) {
+                    try {
+                        const message = JSON.parse(detail).error;
+                        if (typeof message === 'string' && /^(Перевірте довідник |Не налаштовано тип цін)/.test(message)) {
+                            orderDetail = message;
+                        }
+                    } catch {}
+                }
+                throw Object.assign(new Error('Пошук: HTTP ' + response.status + (detail ? ' · ' + detail : '')), {status:response.status, orderDetail});
             }
             const data = await response.json();
             if (!Array.isArray(data) && (!data || !Array.isArray(data.items))) throw new Error('Некоректна відповідь пошуку');
             const items = Array.isArray(data) ? data : data.items;
             if (items.some(item => !item || typeof item !== 'object' || Array.isArray(item))) throw new Error('Некоректний товар у відповіді пошуку');
-            return {items, truncated: data.truncated === true};
+            return {items, truncated: data.truncated === true,
+                ...(Number.isInteger(data.matched_count) ? {matchedCount: data.matched_count, unavailableReason: data.unavailable_reason, stockLocations: data.stock_locations} : {}),
+                ...(typeof data.organization === 'string' ? {organization: data.organization, store: typeof data.store === 'string' ? data.store : ''} : {})};
         })();
         return await Promise.race([request, interrupted]);
     } finally { clearTimeout(timer); signal?.removeEventListener('abort', cancel); }
@@ -121,6 +141,7 @@ function handleGoodsSearchInput(e) {
     _searchTimer = setTimeout(() => runGoodsSearch(query), 200); // 200мс дебаунс
 }
 
+// отменяем предыдущий поиск, чтобы его ответ не перерисовал новую выдачу
 async function runGoodsSearch(query) {
     cancelGoodsSearch();
     const seq = _searchSeq;
@@ -148,6 +169,10 @@ async function runGoodsSearch(query) {
         return;
     }
 
+    if (typeof catalogSavedAt !== 'undefined' && catalogSavedAt) {
+        renderGoodsResults(localSearchGoods(query), query, false);
+        return;
+    }
     if (!navigator.onLine) {
         if (seq === _searchSeq) renderCachedGoodsSearch(query, 'Немає мережі. Показано лише збережені товари; ціни та залишки можуть бути неактуальними.');
         return;
@@ -201,13 +226,19 @@ async function searchGoodsByBarcode(barcode) {
     if (resultsContainer) resultsContainer.classList.add('active');
 
     buildGoodsIndex();
-    const local = goodsByBarcode.get(clean) || goodsByCode.get(clean);
-    if (local) {
-        renderGoodsResults([local], '', false);
-        showToast(`Знайдено: ${local.name}`, false);
-        return;
+    const matches = goodsByBarcode.get(clean);
+    const byCode = goodsByCode.get(clean);
+    const local = matches?.length ? matches : byCode ? [byCode] : [];
+    if (local.length) {
+        renderGoodsResults(local, '', false);
+        return _goodsResults;
     }
 
+    if (!navigator.onLine || (typeof catalogSavedAt !== 'undefined' && catalogSavedAt)) {
+        if (typeof catalogSavedAt !== 'undefined' && catalogSavedAt) renderGoodsResults([], clean, false);
+        else renderCachedGoodsSearch(clean, 'Повний каталог ще не збережено.');
+        return;
+    }
     if (resultsContainer) resultsContainer.innerHTML = goodsSkeletonHtml();
     try {
         const result = await remoteSearchGoods(clean, _searchAbort.signal, true);
@@ -221,6 +252,7 @@ async function searchGoodsByBarcode(barcode) {
         }
         renderGoodsResults(items, '', true);
         showToast(`Знайдено: ${items[0].name || 'товар'}`, false);
+        return _goodsResults;
     } catch (err) {
         if (seq !== _searchSeq || err.name === 'AbortError') return;
         if (resultsContainer) resultsContainer.innerHTML = emptyStateHtml('Помилка пошуку', '36px 20px', 'alert');
@@ -236,7 +268,7 @@ function renderGoodsResults(items, query, fromServer, truncated = false) {
 
     _goodsResults = items.map(normalizeGoods).filter(item => item.type !== 'folder');
     if (_goodsResults.length && query) rememberRecentSearch(query);
-    if (fromServer && currentUser) {
+    if (fromServer && currentUser && !(typeof catalogSavedAt !== 'undefined' && catalogSavedAt)) {
         // сохраняем найденные товары отдельно от папок для поиска без сети
         const merged = new Map(goodsData.map(item => [item.id || item.code, item]));
         for (const item of _goodsResults) merged.set(item.id || item.code, item);
@@ -256,7 +288,8 @@ function renderGoodsResults(items, query, fromServer, truncated = false) {
     const shown = items.slice(0, GOODS_PAGE_LIMIT);
     const remaining = items.length - shown.length;
 
-    let html = resultCountHtml(items.length, truncated) + shown.map((it, i) => goodsCardHtml(it, i, _goodsQuery)).join('');
+    const ordered = typeof shipmentDraftQuantities === 'function' ? shipmentDraftQuantities() : new Map();
+    let html = resultCountHtml(items.length, truncated) + shown.map((it, i) => goodsCardHtml(it, i, _goodsQuery, ordered.get(it.code))).join('');
 
     if (remaining > 0) {
         html += `
@@ -281,7 +314,7 @@ function initGoodsSearch() {
     const clearBtn = document.getElementById('searchClear');
     const numericBtn = document.getElementById('numericToggle');
     const scanBtn = document.getElementById('scanBtn');
-    const mainAddBtn = document.getElementById('mainAddBtn');
+    if (typeof updateMainOrderCount === 'function') updateMainOrderCount();
 
     if (input) {
         input.addEventListener('input', handleGoodsSearchInput);
@@ -322,13 +355,6 @@ function initGoodsSearch() {
         });
     }
 
-        if (mainAddBtn) {
-        mainAddBtn.addEventListener('click', () => {
-            if (typeof openShipmentModal === 'function') {
-                openShipmentModal();
-            }
-        });
-    }
 }
 // показывает число результатов с правильной формой слова и учетом ограничения сервера
 function resultCountHtml(count, truncated = false) {

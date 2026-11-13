@@ -143,7 +143,7 @@ async function login() {
     try {
         // адрес сервиса берем из настроек и убираем завершающий слеш
         const apiBaseUrl = String(APP_CONFIG.apiBase).replace(/\/+$/, '');
-        const response = await fetch(`${apiBaseUrl}/login`, {
+        const response = await fetchFrom1C(`${apiBaseUrl}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pin })

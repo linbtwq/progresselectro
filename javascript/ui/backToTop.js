@@ -67,7 +67,7 @@ function updateBackToTop() {
     const btn = document.getElementById('backToTop')
     if (!results || !btn) return
 
-    const show = results.scrollTop > 400
+    const show = !document.getElementById('catalogPage')?.hidden && results.scrollTop > 400
     if (show === _backToTopVisible) return
 
     _backToTopVisible = show

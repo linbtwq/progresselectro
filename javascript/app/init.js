@@ -49,6 +49,7 @@ async function startApp() {
     if (!user || currentUser !== user) return;
     scheduleStatusLoop();
     renderRecentSearches();
+    updateMainOrderCount();
     loadGoodsData();
     if (navigator.onLine) syncOfflineMeters();
     startAutoRefresh();
@@ -63,6 +64,8 @@ async function startApp() {
 }
 
 function initServiceWorker() {
+    // в apk интерфейс уже лежит внутри приложения, service worker нужен браузеру
+    if (window.Capacitor?.isNativePlatform()) return;
     if ('serviceWorker' in navigator) {
         // обновление версии воркера и его импортов проверяется без старого http-кеша
         navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'}).catch(err => console.error('помилка sw:', err));

@@ -51,6 +51,7 @@ body.dark-theme, html.dark-theme-boot {
     --primary-strong: #c51219;
     --primary-soft: #362127;
     --primary-border: #85414c;
+    --accent-text: #ff8f92;
     --success: #80cba4;
     --success-soft: #1c332b;
     --warning: #efc27a;

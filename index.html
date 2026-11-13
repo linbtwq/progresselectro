@@ -50,8 +50,9 @@
             </div>
             <h2>Прогрес Електро</h2>
             <p>Введіть ваш ПІН-код для початку роботи</p>
-            <input type="password" id="pinInput" class="pin-input" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
-            <div id="authError" class="auth-error" style="display: none;">Невірний ПІН-код</div>
+            <label class="pin-label" for="pinInput">ПІН-код</label>
+            <input type="password" id="pinInput" class="pin-input" inputmode="numeric" pattern="[0-9]*" placeholder="••••" aria-describedby="authError">
+            <div id="authError" class="auth-error" role="alert" style="display: none;">Невірний ПІН-код</div>
             <button class="action-btn" onclick="login()">Увійти</button>
         </div>
     </div>
@@ -59,13 +60,13 @@
     <!-- Верхняя панель с профилем и настройками -->
     <header class="top-bar">
         <div class="app-brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/></svg></span><span>Прогрес<small>Електро</small></span></div>
-        <div class="header-actions"><div id="userBadge" class="user-badge"></div><div id="connectionStatus" class="connection-status" title="Натисніть для оновлення">
-        <div class="status-dot"></div>
-        <div class="status-content">
-            <span class="status-text">Перевірка зв'язку...</span>
-            <span class="status-time" id="statusTime"></span>
-        </div>
-    </div><button id="settingsBtn" class="settings-btn" aria-expanded="false" aria-controls="settingsMenu" aria-haspopup="dialog" aria-label="Налаштування">
+        <div class="header-actions">
+            <button type="button" id="connectionStatus" class="connection-status" title="Оновити дані">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span class="status-text">Перевірка</span>
+            </button>
+            <div id="userBadge" class="user-badge"></div>
+            <button id="settingsBtn" class="settings-btn" aria-expanded="false" aria-controls="settingsMenu" aria-haspopup="dialog" aria-label="Налаштування">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button></div>
     </header>
@@ -83,8 +84,7 @@
             <span>Розмір шрифту</span>
             <span class="menu-value" id="fontScaleValue">A</span>
         </button>
-        <p class="settings-section">Документи та дані</p>
-        <button id="invoiceHistoryBtn" class="menu-item"><span>Історія документів</span><span class="menu-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5v18h14V3h-3M8 3v4h8V3H8ZM8 12h8M8 16h5"/></svg></span></button>
+        <p class="settings-section">Дані</p>
         <button id="clearCacheBtn" class="menu-item danger">
             <span>Очистити кеш</span>
             <span class="menu-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg></span>
@@ -93,44 +93,92 @@
         </section>
     </div>
 
-    <div class="app-wrapper" id="appWrapper">
+    <main class="app-wrapper" id="appWrapper">
+        <div id="catalogPage" class="catalog-page">
         <div class="top-area" id="topArea">
             <div class="welcome-screen" id="welcomeScreen">
-                <span class="welcome-kicker">Товари та накладні</span>
-                <h1>Пошук товарів</h1>
-                <p>Введіть назву, код або скористайтеся сканером</p>
+                <h1 class="page-title">Каталог</h1>
+                <p class="page-description">Знайдіть товар за назвою, кодом або штрихкодом</p>
             </div>
 
             <div class="search-container" id="searchContainer">
-                <div class="search-box">
+                <div class="search-tools" role="search" aria-label="Пошук товарів">
+                  <div class="search-box">
                     <span class="search-icon">
                         <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
                     </span>
-                    <input type="text" id="goodsSearch" placeholder="Назва, код або штрихкод" autocomplete="off">
+                    <input type="text" id="goodsSearch" aria-label="Назва, код або штрихкод товару" placeholder="Назва, код або штрихкод" autocomplete="off">
                     <button type="button" class="search-clear" id="searchClear" aria-label="Очистити" hidden>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                     </button>
-                    <button type="button" class="numeric-toggle" id="numericToggle" aria-label="Цифрова клавіатура">123</button>
+                    <button type="button" class="numeric-toggle" id="numericToggle" aria-label="Цифрова клавіатура" aria-pressed="false">123</button>
+                  </div>
+                  <button type="button" class="workspace-action" id="scanBtn" aria-label="Сканувати штрихкод" aria-haspopup="dialog">
+                    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 7V3h4m10 0h4v4M3 17v4h4m10 0h4v-4M7 9v6m3-7v8m4-8v8m3-7v6"/></svg>
+                    Сканувати
+                  </button>
                 </div>
-                
-                <button type="button" class="btn-add-main" id="mainAddBtn">
-                    <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                    Додати
-                </button>
             </div>
         </div>
 
+        <!-- дата сохраненного каталога и ход обновления показываются отдельно -->
+        <div class="offline-catalog-bar">
+            <div class="offline-catalog-status"><span id="offlineCatalogStatus"></span><span id="offlineCatalogActivity" role="status"></span></div>
+            <button type="button" class="catalog-refresh" id="catalogRefreshBtn">Оновити каталог</button>
+        </div>
         <div class="results-container" id="resultsContainer"></div>
-    </div>
+        </div>
+        <!-- черновик заказа с отдельным итогом перед отправкой -->
+        <section id="shipmentPage" class="workspace-page" aria-labelledby="shipmentTitle" hidden>
+            <div class="workspace-scroll" id="shipmentBody">
+                <h1 class="page-title" id="shipmentTitle">Замовлення</h1>
+                <p class="order-organization" id="shipmentOrganization" role="status"></p>
+                <p class="page-description" id="shipmentCount" hidden></p>
+                <p class="page-description" id="shipmentDocuments" hidden></p>
+                <div class="shipment-state" id="shipmentStart">
+                    <strong>Замовлення порожнє</strong>
+                    <p>Виберіть товар у каталозі та вкажіть кількість.</p>
+                </div>
+                <div id="shipmentGrid" class="order-list"></div>
+                <button class="action-btn order-add" type="button" id="shipmentAddBtn"><span aria-hidden="true">＋</span> Додати товар</button>
+            </div>
+            <footer class="order-footer" id="shipmentFooter" hidden>
+                <div class="order-summary" id="shipmentSummary"></div>
+                <button class="action-btn" type="button" id="shipmentSendBtn" disabled>Оформити замовлення</button>
+            </footer>
+        </section>
+        <!-- история документов, сохраненных на этом устройстве -->
+        <section id="invoiceHistoryPage" class="workspace-page" aria-labelledby="invoiceHistoryTitle" hidden>
+            <div class="workspace-scroll">
+                <h1 class="page-title" id="invoiceHistoryTitle">Історія документів</h1>
+                <p class="page-description">На цьому пристрої · останні 100 документів</p>
+                <div id="invoiceHistoryBody"></div>
+            </div>
+        </section>
+        <nav class="catalog-nav" aria-label="Розділи">
+            <div class="catalog-nav-inner">
+                    <button type="button" id="catalogBtn" aria-controls="catalogPage" aria-current="page">
+                        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                        Каталог
+                    </button>
+                    <button type="button" id="mainAddBtn" aria-controls="shipmentPage">
+                      <span class="nav-icon">
+                        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5v18h14V3h-3M8 3v4h8V3H8Zm4 8v6m-3-3h6"/></svg>
+                        <span class="order-count" id="mainOrderCount" hidden></span>
+                      </span>
+                        Замовлення
+                    </button>
+                    <button type="button" id="invoiceHistoryBtn" aria-label="Історія документів" aria-controls="invoiceHistoryPage">
+                        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v6h6M4.5 9A8 8 0 1 1 4 15m8-7v4l3 2"/></svg>
+                        Історія
+                    </button>
+            </div>
+        </nav>
+    </main>
 
     <!-- Кнопка наверх -->
     <button id="backToTop" class="back-to-top" type="button" aria-label="Догори">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>
-    </button>
-
-    <!-- ПЛАВАЮЩАЯ КНОПКА СКАНЕРА (ТА САМАЯ КРАСНАЯ) -->
-    <button class="fab-scanner" id="scanBtn" aria-label="Сканувати штрихкод">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="7" y2="12.01"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="14" y1="9" x2="14" y2="15"/><line x1="17" y1="12" x2="17" y2="12.01"/></svg>
     </button>
 
     <!-- Универсальный диалог -->
@@ -146,23 +194,6 @@
             <div class="modal-footer">
                 <button id="confirmDialogCancel" type="button" class="action-btn btn-secondary"></button>
                 <button id="confirmDialogOk" type="button" class="action-btn"></button>
-            </div>
-        </div>
-    </div>
-
-    <!-- МОДАЛКА ДОДАТИ -->
-    <div class="modal-overlay" id="shipmentOverlay" style="z-index: 1050;">
-        <div class="modal-box assort-box">
-            <div class="modal-header">
-                <div class="assort-head">
-                    <h3>Нове замовлення</h3>
-                </div>
-                <button class="modal-close" type="button" aria-label="Закрити">✕</button>
-            </div>
-            <div class="modal-body" id="shipmentBody"></div>
-            <div class="modal-footer order-footer" id="shipmentFooter" hidden>
-                <div class="order-summary" id="shipmentSummary"></div>
-                <button class="action-btn btn-success" type="button" id="shipmentSendBtn" disabled>Створити замовлення</button>
             </div>
         </div>
     </div>

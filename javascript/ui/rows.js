@@ -46,7 +46,10 @@ function renderProductRow(cfg) {
     return `
         <div class="meter-input-group assort-row ${cfg.rowClass || ''}" ${cfg.dataAttr || ''} data-idx="${cfg.idx || 0}" data-code="${code}" data-price="${price}">
             <div class="assort-row-head">
-                <strong class="assort-tile-name drink-name">${name}</strong>
+                <div class="goods-product-heading">
+                ${cfg.photoHtml || ''}
+                    <strong class="assort-tile-name drink-name">${name}</strong>
+                </div>
                 ${headPriceHtml}
             </div>
             <div class="assort-row-fields ${cfg.fieldsClass || ''}">

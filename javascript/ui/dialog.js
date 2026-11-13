@@ -37,7 +37,7 @@ const _isFormField = (el) => {
 // ============================================================
 
 // показывает общий диалог или проверку накладной в виде чека
-function showConfirmDialog({ title, message, details, receiptItems, receiptTotal, documentResult, okText, cancelText, danger }) {
+function showConfirmDialog({ title, message, details, receiptItems, receiptGroups, receiptTotal, documentResult, okText, cancelText, danger }) {
     return new Promise((resolve) => {
         const overlay = document.getElementById('confirmDialogOverlay')
         const titleEl = document.getElementById('confirmDialogTitle')
@@ -64,6 +64,10 @@ function showConfirmDialog({ title, message, details, receiptItems, receiptTotal
         // список деталей опциональный
         if (documentResult) {
             detailsEl.innerHTML = documentResultMarkup(documentResult);
+            detailsEl.style.display = '';
+        } else if (receiptGroups?.length) {
+            detailsEl.innerHTML = receiptGroups.map(group => `<section class="receipt-group"><h4>${escapeHtml(group.title)}</h4>${receiptMarkup(group.items, group.total)}</section>`).join('') +
+                `<div class="receipt-total"><span>Разом за всіма документами</span><strong>${money(receiptTotal)} ₴</strong></div>`;
             detailsEl.style.display = '';
         } else if (Array.isArray(receiptItems) && receiptItems.length) {
             detailsEl.innerHTML = receiptMarkup(receiptItems, receiptTotal);

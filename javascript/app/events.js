@@ -25,10 +25,33 @@
 // - app/load.js дает loadGoodsData
 // ============================================================
 
+// при переходе показываем выбранный экран и обновляем нижнюю навигацию
+function selectWorkspacePage(pageId) {
+    const pages = document.querySelectorAll('.catalog-nav button[aria-controls]');
+    for (const button of pages) {
+        const id = button.getAttribute('aria-controls');
+        const selected = id === pageId;
+        document.getElementById(id).hidden = !selected;
+        if (selected) button.setAttribute('aria-current', 'page');
+        else button.removeAttribute('aria-current');
+    }
+    updateBackToTop();
+}
+
+function openCatalogPage(focusSearch = false) {
+    selectWorkspacePage('catalogPage');
+    if (focusSearch) document.getElementById('goodsSearch').focus();
+}
+
 function initEventListeners() {
     initGoodsSearch();
     initQuantityKeyboard();
-    initInvoiceHistory();
+    initShipmentPage();
+    document.getElementById('catalogBtn').addEventListener('click', () => {
+        if (!shipmentSending && !shipmentReviewPending) openCatalogPage();
+    });
+    document.getElementById('mainAddBtn').addEventListener('click', openShipmentPage);
+    document.getElementById('invoiceHistoryBtn').addEventListener('click', openInvoiceHistory);
     document.getElementById('shipmentSendBtn')?.addEventListener('click', submitShipment);
 
     const results = document.getElementById('resultsContainer');
@@ -40,9 +63,13 @@ function initEventListeners() {
 
     const statusBox = document.getElementById('connectionStatus');
     if (statusBox) statusBox.addEventListener('click', manualRefresh);
+    document.getElementById('catalogRefreshBtn')?.addEventListener('click', manualRefresh);
 
     // реакция на смену состояния сети
     window.addEventListener('online', handleOnlineStatus);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') autoRefreshTick();
+    });
     window.addEventListener('offline', () => setConnectionStatus(false));
 
     // клавиатурная навигация: escape, слэш, ctrl k, r, tab-trap
@@ -83,7 +110,7 @@ function scheduleStatusLoop() {
 function handleOnlineStatus() {
     retryAttempt = 0;
     syncOfflineMeters();
-    if (currentUser) loadGoodsData({ silent: true });
+    if (currentUser) loadGoodsData({ silent: true, manual: true });
 }
 let _settingsFocus = null;
 // подключает открытие панели и закрытие по фону или кнопке

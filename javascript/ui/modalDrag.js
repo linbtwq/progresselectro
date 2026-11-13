@@ -47,12 +47,10 @@ function closeModalByOverlay(overlay) {
     }
 
     if (id === 'settingsMenu') closeSettingsPanel()
-    else if (id === 'invoiceHistoryOverlay') closeInvoiceHistory()
     else if (id === 'quantityKeyboardOverlay') closeQuantityKeyboard()
     else if (id === 'barcodeScannerOverlay') closeBarcodeScanner()
     else if (id === 'modalOverlay' && typeof closeModal === 'function') closeModal()
     else if (id === 'stockOverlay' && typeof closeStockModal === 'function') closeStockModal()
-    else if (id === 'shipmentOverlay' && typeof closeShipmentModal === 'function') closeShipmentModal()
     else if (id === 'recountOverlay' && typeof closeRecountModal === 'function') closeRecountModal()
     else if (id === 'noteOverlay' && typeof closeNoteModal === 'function') closeNoteModal()
     else if (id === 'assortOverlay' && typeof closeAssortModal === 'function') closeAssortModal()

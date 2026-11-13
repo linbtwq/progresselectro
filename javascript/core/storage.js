@@ -56,6 +56,20 @@ const localDB = {
         })
     },
 
+    // сохраняем полный каталог и убираем промежуточные порции одной транзакцией
+    async commitCatalog(key, snapshot) {
+        const db = await this.getDb()
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(this.store, 'readwrite')
+            const store = tx.objectStore(this.store)
+            store.put(snapshot, key)
+            store.delete(key + ':pending')
+            store.delete(IDBKeyRange.bound(key + ':page:', key + ':page:\uffff'))
+            tx.oncomplete = resolve
+            tx.onabort = () => reject(tx.error)
+        })
+    },
+
     // читает значение по ключу
     async load(key) {
         const db = await this.getDb()

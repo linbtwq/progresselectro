@@ -61,12 +61,12 @@ function renderStatus() {
     const failedCount = readFailed().length
     const timeText = getStatusTimeText()
 
-    const timeEl = box.querySelector('.status-time')
-    if (timeEl) timeEl.textContent = timeText
-
     // если ничего не менялось не перерисовываем
     const stateKey = `${connectionOnline}|${queued}|${failedCount}|${lastSyncError}|${isLoading ? 1 : 0}`
-    if (stateKey === _lastStatusKey) return
+    if (stateKey === _lastStatusKey) {
+        box.title = box.dataset.description + (timeText ? ' · Оновлено ' + timeText : '')
+        return
+    }
     _lastStatusKey = stateKey
 
     box.className = 'connection-status'
@@ -84,7 +84,12 @@ function renderStatus() {
     if (failedCount) text += ` · Відхилено: ${failedCount}`
 
     const textEl = box.querySelector('.status-text')
-    if (textEl) textEl.textContent = text
+    if (textEl) {
+        textEl.textContent = queued ? `У черзі: ${queued}` : failedCount ? `Відхилено: ${failedCount}`
+            : connectionOnline === null ? 'Перевірка' : connectionOnline ? '1С онлайн' : '1С офлайн'
+    }
 
-    box.title = 'Натисніть для оновлення' + (lastSyncError ? ` (${lastSyncError})` : '')
+    box.setAttribute('aria-label', 'Оновити дані. ' + text)
+    box.dataset.description = 'Оновити дані · ' + text + (lastSyncError ? ` (${lastSyncError})` : '')
+    box.title = box.dataset.description + (timeText ? ' · Оновлено ' + timeText : '')
 }

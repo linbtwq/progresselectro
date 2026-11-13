@@ -49,11 +49,19 @@ function openQuantityKeyboard(input) {
     const idx = Number(row?.dataset.idx);
     const item = shipmentItems[idx];
     if (!row || !item) return;
+    showQuantityKeyboard(item, input, row);
+}
+
+// открывает ту же клавиатуру в заказе или внутри карточки товара
+function showQuantityKeyboard(item, input, row, dialog, onConfirm) {
+    const overlay = document.getElementById('quantityKeyboardOverlay');
+    const parent = dialog ? overlay.parentElement : null;
+    if (dialog) dialog.append(overlay);
     document.activeElement?.blur();
-    quantityDraft = { input, row, item, value: String(item.qty), replace: true };
+    quantityDraft = { input, row, item, parent, onConfirm, value: String(item.qty), replace: true };
     document.getElementById('quantityProduct').textContent = item.name;
     document.getElementById('quantityKeyboardOverlay').classList.add('active');
-    document.getElementById('shipmentOverlay').inert = true;
+    document.getElementById('shipmentPage').inert = true;
     updateQuantityKeyboard();
     document.querySelector('[data-quantity-key="1"]').focus({preventScroll:true});
 }
@@ -76,12 +84,16 @@ function updateQuantityKeyboard() {
 function handleQuantityKey(key) {
     if (!quantityDraft) return;
     if (key === 'OK') {
-        const {input, row, item, value} = quantityDraft;
+        const {input, row, item, value, onConfirm} = quantityDraft;
         if (Number(value) > item.maxQty) return;
+        if (onConfirm) {
+            closeQuantityKeyboard();
+            onConfirm(Number(value));
+            return;
+        }
         item.qty = Number(value);
         input.value = item.qty;
         updateShipmentRow(row, Number(row.dataset.idx));
-        updateShipmentSummary();
         closeQuantityKeyboard();
         return;
     }
@@ -92,10 +104,11 @@ function handleQuantityKey(key) {
 
 // закрывает клавиатуру без сохранения неподтвержденного ввода
 function closeQuantityKeyboard(restore = true) {
-    const input = quantityDraft?.input;
+    const {input, parent} = quantityDraft || {};
+    if (parent) parent.append(document.getElementById('quantityKeyboardOverlay'));
     quantityDraft = null;
     document.getElementById('quantityKeyboardOverlay')?.classList.remove('active');
-    const shipment = document.getElementById('shipmentOverlay');
+    const shipment = document.getElementById('shipmentPage');
     if (shipment) shipment.inert = false;
     if (restore && input?.isConnected) input.focus({preventScroll:true});
 }

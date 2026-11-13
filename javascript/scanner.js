@@ -24,7 +24,6 @@
 // зависимости
 // - BarcodeDetector API (chrome на android) или BarcodeDetectorPolyfill
 // - goods.js для searchGoodsByBarcode
-// - shipment.js для searchShipmentByBarcode
 // - ui/toast.js для showToast
 // ============================================================
 
@@ -92,7 +91,10 @@ function resolveBarcodeDetectorClass() {
 // блок 2. открытие камеры
 // ============================================================
 
-async function openBarcodeScanner() {
+let lastBatchBarcode = '';
+let emptyScanFrames = 0;
+
+async function openBarcodeScanner(continueBatch = false) {
     // сначала решаем каким классом будем пользоваться
     const DetectorClass = resolveBarcodeDetectorClass();
     if (!DetectorClass) {
@@ -107,13 +109,15 @@ async function openBarcodeScanner() {
 
     // защита от двойного клика
     if (overlay && overlay.classList.contains('active')) return;
+    if (continueBatch !== true) lastBatchBarcode = '';
+    emptyScanFrames = 0;
 
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'barcodeScannerOverlay';
         overlay.className = 'modal-overlay';
         overlay.innerHTML = `
-            <div class="scanner-box">
+            <div class="scanner-box" role="dialog" aria-modal="true" aria-label="Сканування товарів">
                 <video id="scannerVideo" playsinline></video>
                 <div class="scanner-overlay">
                     <div class="scanner-target">
@@ -121,7 +125,7 @@ async function openBarcodeScanner() {
                     </div>
                     <p class="scanner-hint">Наведіть камеру на штрих-код</p>
                 </div>
-                <button id="scannerCloseBtn" type="button">Скасувати</button>
+                <button id="scannerCloseBtn" type="button">Завершити сканування</button>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -135,6 +139,7 @@ async function openBarcodeScanner() {
 
     const session = ++_scanSession;
     overlay.classList.add('active');
+    overlay.querySelector?.('#scannerCloseBtn')?.focus();
 
     try {
         // запрашиваем камеру (facingMode: environment - задняя камера)
@@ -222,32 +227,21 @@ async function startScanLoop() {
         const barcodes = await _barcodeDetector.detect(video);
         if (session !== _scanSession) return;
 
-        if (barcodes && barcodes.length > 0) {
+        if (!barcodes?.length && video.readyState >= 2 && ++emptyScanFrames >= 2) {
+            lastBatchBarcode = '';
+        }
+        if (barcodes?.length) {
+            emptyScanFrames = 0;
             const code = barcodes[0].rawValue;
-            if (code) {
+            if (code && code !== lastBatchBarcode) {
+                lastBatchBarcode = code;
                 if (navigator.vibrate) navigator.vibrate(100);
                 playScanBeep();
 
                 closeBarcodeScanner();
 
-                // маршрут 1 окно отгрузки
-                const shipmentOverlay = document.getElementById('shipmentOverlay');
-                if (shipmentOverlay && shipmentOverlay.classList.contains('active')) {
-                    if (typeof searchShipmentByBarcode === 'function') {
-                        searchShipmentByBarcode(code);
-                    }
-                    return;
-                }
-
-                // маршрут 2 каталог в drawer
-                const input = document.getElementById('goodsSearch');
-                if (input) {
-                    // убрали input.value = code, так как searchGoodsByBarcode сам очистит поле
-                    if (typeof searchGoodsByBarcode === 'function') {
-                        searchGoodsByBarcode(code);
-                    }
-                    return;
-                }
+                handleBatchBarcode(code).catch(() => showToast('Не вдалося відкрити товар', true));
+                return;
             }
         }
     } catch (e) {
@@ -257,6 +251,24 @@ async function startScanLoop() {
     }
 
     if (session === _scanSession) _scanTimerId = setTimeout(startScanLoop, 150);
+}
+
+// при одном совпадении сразу открываем карточку, при нескольких просим выбрать товар
+async function handleBatchBarcode(code) {
+    const user = currentUser;
+    const session = _scanSession;
+    const search = searchGoodsByBarcode(code);
+    const sequence = _searchSeq;
+    const items = await search;
+    if (!user || user !== currentUser || session !== _scanSession || sequence !== _searchSeq ||
+        document.getElementById('catalogPage')?.hidden || getTopModal() || document.querySelector('dialog[open]')) return;
+    const results = document.getElementById('resultsContainer');
+    if (items?.length === 1) {
+        await openGoodsDetails(items[0], results.querySelector('.goods-card'), true);
+    } else if (items?.length > 1) {
+        results.dataset.scanSelection = '1';
+        showToast('Виберіть товар, щоб продовжити сканування');
+    }
 }
 
 // ============================================================

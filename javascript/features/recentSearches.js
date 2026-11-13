@@ -23,7 +23,9 @@ function renderRecentSearches() {
     const host = document.getElementById('recentSearches');
     if (!host) return;
     const list = readRecentSearches();
-    host.innerHTML = list.length ? '<div class="recent-heading">Останні пошуки<button type="button" data-clear-recent>Очистити</button></div><div class="recent-list">' + list.map((q, i) => `<button type="button" data-recent-index="${i}">${escapeHtml(q)}</button>`).join('') + '</div>' : '';
+    const clock = '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v6h6M4.5 9A8 8 0 1 1 4 15m8-7v4l3 2"/></svg>';
+    const arrow = '<svg class="recent-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>';
+    host.innerHTML = list.length ? '<div class="recent-heading"><h2>Останні пошуки</h2><button type="button" data-clear-recent>Очистити</button></div><div class="recent-list">' + list.map((q, i) => `<button type="button" data-recent-index="${i}">${clock}<span>${escapeHtml(q)}</span>${arrow}</button>`).join('') + '</div>' : '';
 }
 
 // создает блок истории и повторяет запрос по нажатию на сохраненную строку

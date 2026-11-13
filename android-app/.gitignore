@@ -1,0 +1,8 @@
+/node_modules/
+/web/
+/android/.gradle/
+/android/local.properties
+/android/build/
+/android/app/build/
+/android/app/src/main/assets/
+/dist/

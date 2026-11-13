@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Прогрес Електро</string>
+    <string name="title_activity_main">Прогрес Електро</string>
+    <string name="package_name">ua.progresselectro.catalog</string>
+    <string name="custom_url_scheme">ua.progresselectro.catalog</string>
+</resources>

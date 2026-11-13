@@ -9,6 +9,7 @@ function readInvoiceHistory(user = currentUser) {
 }
 
 // сохраняет подтвержденный результат и объединяет повторный ответ по идентификатору запроса
+// сохраняем ответ 1с в истории сотрудника на этом устройстве
 function saveInvoiceHistory(user, payload, response, conductError) {
     const key = invoiceHistoryKey(user);
     if (!key) return;
@@ -22,47 +23,27 @@ function saveInvoiceHistory(user, payload, response, conductError) {
         : serverSum != null && Number.isFinite(Number(serverSum)) ? Number(serverSum) : calculated;
     const record = { requestId:payload.request_id, number, documentType:response?.document_type || previous?.documentType,
         date:String(response?.doc_date || previous?.date || ''),
+        organization:String(response?.organization || previous?.organization || ''),
+        store:String(response?.store || previous?.store || ''),
         savedAt:previous?.savedAt || Date.now(), total, error:String(conductError || previous?.error || ''),
-        items:payload.items.map(item => ({code:item.code, name:item.name, qty:item.qty, price:item.price})) };
+        items:payload.items.map(item => ({code:item.code, name:item.name, qty:item.qty, price:item.price, variant:item.variant})) };
     try { localStorage.setItem(key, JSON.stringify([record, ...list.filter(item => item.requestId !== record.requestId)].slice(0, 100))); }
     catch (e) { showToast('Документ створено, але історію не вдалося зберегти на пристрої', true); }
 }
 
-// создает окно истории и подключает открытие из меню настроек
-function initInvoiceHistory() {
-    const overlay = document.createElement('div');
-    overlay.id = 'invoiceHistoryOverlay'; overlay.className = 'modal-overlay invoice-history';
-    overlay.innerHTML = `<section class="modal-box" role="dialog" aria-modal="true" aria-labelledby="invoiceHistoryTitle">
-        <header class="modal-header"><div><h3 id="invoiceHistoryTitle">Історія документів</h3><p class="history-note">На цьому пристрої · останні 100 документів</p></div><button type="button" class="modal-close" aria-label="Закрити історію">✕</button></header>
-        <div class="modal-body" id="invoiceHistoryBody"></div></section>`;
-    document.body.appendChild(overlay);
-    overlay.querySelector('.modal-close').addEventListener('click', closeInvoiceHistory);
-    overlay.addEventListener('click', event => { if (event.target === overlay) closeInvoiceHistory(); });
-    document.getElementById('invoiceHistoryBtn')?.addEventListener('click', openInvoiceHistory);
-}
-
-// показывает номер, сумму, статус проведения и раскрываемый состав каждой накладной
 function openInvoiceHistory() {
-    if (!currentUser) return;
-    closeSettingsPanel();
-    rememberFocus();
+    if (!currentUser || shipmentSending || shipmentReviewPending) return;
     const list = readInvoiceHistory();
     const body = document.getElementById('invoiceHistoryBody');
     body.innerHTML = list.length ? list.map(record => `<article class="invoice-card">
         <div class="invoice-heading"><strong>${record.number ? (record.documentType === 'customer_order' ? 'Замовлення № ' : 'Накладна № ') + escapeHtml(record.number) : 'Документ без номера'}</strong><b>${money(record.total)} ₴</b></div>
         <p class="history-note">${escapeHtml(formatInvoiceDate(record.date, record.savedAt))}</p>
+        ${record.organization ? `<p class="history-note">${escapeHtml([record.organization, record.store].filter(Boolean).join(' · '))}</p>` : ''}
         <span class="invoice-status ${record.error ? 'warning' : ''}">${record.error ? 'Потребує перевірки' : record.documentType === 'customer_order' ? 'Створено' : record.number ? 'Проведено' : 'Підтверджено сервером'}</span>
         ${record.error ? `<p class="invoice-error">${escapeHtml(record.error)}</p>` : ''}
-        <details><summary>Надісланий склад · ${record.items.length} поз.</summary><ul>${record.items.map(item => `<li><span>${escapeHtml(item.name)}<small>${escapeHtml(item.code)}</small></span><b>${fmt(item.qty)} × ${money(item.price)} ₴</b></li>`).join('')}</ul></details>
+        <details><summary>Надісланий склад · ${record.items.length} поз.</summary><ul>${record.items.map(item => `<li><span>${escapeHtml([item.name, item.variant].filter(Boolean).join(" · "))}<small>${escapeHtml(item.code)}</small></span><b>${fmt(item.qty)} × ${money(item.price)} ₴</b></li>`).join('')}</ul></details>
     </article>`).join('') : emptyStateHtml('Тут з’являться документи, створені з цього пристрою', '24px 12px', 'history');
-    const overlay = document.getElementById('invoiceHistoryOverlay');
-    overlay.classList.add('active'); autofocusModal(overlay);
-}
-
-// закрывает историю и возвращает фокус на предыдущий элемент
-function closeInvoiceHistory() {
-    document.getElementById('invoiceHistoryOverlay')?.classList.remove('active');
-    restoreFocus();
+    selectWorkspacePage('invoiceHistoryPage');
 }
 
 // формирует проверочный список из снимка позиций перед отправкой

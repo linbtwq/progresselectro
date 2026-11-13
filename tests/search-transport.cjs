@@ -29,5 +29,14 @@ const assert = require('node:assert/strict');
     await assert.rejects(ctx.remoteSearchGoods('4'),/Некоректний товар/);
     let url;ctx.fetchWithTimeout=async value=>{url=value;return {ok:true,json:async()=>[]};};
     await ctx.remoteSearchGoods('12345678',undefined,true);assert(url.includes('barcode=12345678'));
+    ctx.fetchWithTimeout=async value=>{url=value;return {ok:true,json:async()=>({
+        items:[], organization:'Магазин', store:'Прогрес Електро', matched_count:1,
+        unavailable_reason:'stock', stock_locations:[{organization:'Інша організація', quantity:1}]
+    })};};
+    const availability=await ctx.remoteSearchGoods('35052',undefined,false,'customer-order',true);
+    assert(url.includes('/customer-order?') && url.includes('q=35052&exact=1'));
+    assert.equal(availability.organization,'Магазин');
+    assert.equal(availability.unavailableReason,'stock');
+    assert.equal(availability.stockLocations[0].organization,'Інша організація');
     console.log('PASS: search retry, HTTP rejection, body timeout, abort during body and retry, invalid items, barcode route');
 })().catch(error=>{console.error(error);process.exitCode=1;});

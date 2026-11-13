@@ -9,13 +9,30 @@ ctx.saveInvoiceHistory(ctx.currentUser,{...payload,request_id:'two'},{doc_number
 assert.equal(ctx.readInvoiceHistory()[0].error,'помилка');
 ctx.currentUser={id:'b'};assert.equal(ctx.readInvoiceHistory().length,0);
 let resolveReview, sent=0;
+let sentPayload;
 const overlay={inert:false};
 Object.assign(ctx,{document:{getElementById:()=>overlay,querySelector:()=>({})},navigator:{onLine:true},closeQuantityKeyboard(){},newRequestId:()=> 'id',shipmentDraftKey:()=> 'draft',showConfirmDialog:()=>new Promise(r=>resolveReview=r),submitDocument:async options=>{assert.equal(options.endpoint,'customer-order');assert(!options.validateResponse({ok:true,doc_number:'old'}));assert(options.validateResponse({ok:true,document_type:'customer_order',doc_number:'new'}));sent++},updateShipmentSummary(){}});
 vm.runInContext(fs.readFileSync('javascript/shipment.js','utf8'),ctx);
+vm.runInContext(fs.readFileSync('javascript/features/shipmentDraft.js','utf8'),ctx);
+const submitDocument=ctx.submitDocument;
+ctx.submitDocument=async options=>{sentPayload=options.payload; await submitDocument(options);};
 ctx.updateShipmentSummary=()=>{};
 vm.runInContext("shipmentItems=[{code:'7',name:'товар',qty:2,price:5}]",ctx);
 (async()=>{
  const cancelled=ctx.submitShipment();assert.equal(sent,0);assert.equal(overlay.inert,true);resolveReview(false);await cancelled;assert.equal(sent,0);assert.equal(overlay.inert,false);
  const approved=ctx.submitShipment();const duplicate=ctx.submitShipment();await duplicate;assert.equal(sent,0);resolveReview(true);await approved;assert.equal(sent,1);
+ assert.equal(sentPayload.source,undefined);
+ vm.runInContext("shipmentItems[0].source={organization_id:'org',store_id:'store'}",ctx);
+ const alternate=ctx.submitShipment();resolveReview(true);await alternate;
+ assert.deepEqual(JSON.parse(JSON.stringify(sentPayload.source)),{organization_id:'org',store_id:'store'});
+ vm.runInContext("shipmentItems[0].source.variant_id='cut-1'; shipmentItems.push({...shipmentItems[0], source:{organization_id:'other',store_id:'store',variant_id:'cut-2'}})",ctx);
+ ctx.submitDocument=async options=>{
+     sentPayload=options.payload;
+     const document={ok:true,document_type:'customer_order',doc_number:'new'};
+     assert(options.validateResponse({ok:true,documents:[document,document]}));
+     assert(!options.validateResponse({ok:true,documents:[document]}));
+ };
+ const mixed=ctx.submitShipment();resolveReview(true);await mixed;
+ assert.deepEqual(JSON.parse(JSON.stringify(sentPayload.groups.map(group=>group.items[0].variant_id))),['cut-1','cut-2']);
  console.log('PASS: history deduplication, duplicate receipt metadata, posting error, user isolation, cancel review, confirmation gate, repeated click');
 })().catch(e=>{console.error(e);process.exitCode=1});

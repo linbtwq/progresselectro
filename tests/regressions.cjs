@@ -15,6 +15,11 @@ function context(extra = {}) {
     const box = {innerHTML:'', dataset:{}, scrollTop:0, querySelector:()=>({remove(){}}), insertAdjacentHTML(_, html){this.innerHTML += html;}};
     const c = context({ navigator:{onLine:true}, rememberRecentSearch(){}, renderRecentSearches(){}, readJsonSafe:()=>[], localDB:{save:async()=>{}}, APP_CONFIG:{pageSize:60,loadTimeoutMs:100}, document:{getElementById:()=>box}, goodsData:[], goodsIndexBuilt:false, goodsByCode:new Map(), goodsByBarcode:new Map(), escapeHtml:String,highlightText:String, fmt:String,money:String, emptyStateHtml:String, showToast(){}, apiBase:'test', currentUser:{id:'a'} });
     c.read('javascript/app/load.js'); c.read('javascript/features/goods-card.js'); c.read('javascript/features/search.js');
+    const cable = {code:'1012', name:'Кабель', stock:0};
+    const cut = {quantity:200, price:10.71, organization_id:'org', store_id:'store', variant:'Кусок №2'};
+    assert.match(c.goodsCardHtml({...cable, stockLocations:[{...cut, variant_id:'cut-2'}, {...cut, quantity:40}]}, 0, '', 2), /Всього 240 · До замовлення 200[\s\S]*У замовленні: 2/);
+    assert.match(c.goodsCardHtml({...cable, stockLocations:[cut]}), /Залишок є в 1С/);
+    assert.match(c.goodsCardHtml({...cable, stockLocations:[]}), /Немає в наявності/);
     c.goodsData = Array.from({length:301}, (_,i)=>({id:String(i),code:String(i),name:'wire',price:1}));
     assert.equal(c.localSearchGoods('wire').length,301);
     c.renderGoodsResults(c.goodsData,'wire',false);
@@ -42,6 +47,22 @@ function context(extra = {}) {
     const opening=sc.openBarcodeScanner(); sc.closeBarcodeScanner();
     camera.resolve({getTracks:()=>[{stop(){stopped++;}}]}); await opening;
     assert.equal(stopped,1); assert.equal(plays,0);
+    const scanned = {code:'1012'};
+    const scanResults = {dataset:{}, querySelector:()=>box};
+    let opened;
+    Object.assign(sc, {
+        currentUser:{id:'a'}, _searchSeq:1, getTopModal:()=>null,
+        searchGoodsByBarcode:async()=>[scanned],
+        openGoodsDetails:async (...args)=>{ opened=args; }
+    });
+    sc.document.getElementById = () => scanResults;
+    sc.document.querySelector = () => null;
+    await sc.handleBatchBarcode('12345678');
+    assert.deepEqual(opened,[scanned,box,true]);
+    sc.searchGoodsByBarcode = async () => [scanned, {code:'1013'}];
+    sc.showToast = () => {};
+    await sc.handleBatchBarcode('12345678');
+    assert.equal(scanResults.dataset.scanSelection,'1');
     const focus=context({_isFormField:()=>true,document:{activeElement:{},getElementById:id=>id==='goodsSearch'?{value:'wire'}:{}},runGoodsSearch:q=>assert.equal(q,'')});
     focus.read('javascript/ui/focus.js'); focus.getTopModal=()=>null;
     focus.onKeyDown({key:'Escape',preventDefault(){}});
@@ -57,38 +78,24 @@ function context(extra = {}) {
         }
         return orderElements.get(id);
     };
-    orderElement('shipmentSearch').value = '';
-    orderElement('shipmentEmpty').querySelector = selector => orderElement(selector);
-    const orderRequests = [];
-    let quantityOpened = false;
-    const order = context({currentUser:{id:'a'},document:{body:orderElement('body'),getElementById:orderElement,querySelector:()=>({})},
-        rememberFocus(){},restoreShipmentDraft(){},saveShipmentDraft(){},newRequestId:()=> 'order-id',
-        openBarcodeScanner(){},openQuantityKeyboard(){quantityOpened=true;},renderProductRow:()=>'',fmt:String,money:String,
-        remoteSearchGoods(query,signal,barcode,endpoint) {
-            const request = deferred();
-            orderRequests.push({query,signal,barcode,endpoint,resolve:request.resolve});
-            return request.promise;
-        }});
+    let selectedPage;
+    let savedQuantity;
+    const order = context({currentUser:{id:'a'},navigator:{onLine:false},document:{getElementById:orderElement},
+        newRequestId:()=> 'order-id', selectWorkspacePage:id=>{ selectedPage = id; },
+        goodsPhotoHtml:()=>'',escapeHtml:String,money:String});
     order.read('javascript/shipment.js');
-    order.openShipmentModal();
-    assert.equal(orderRequests.length,0);
-    assert.equal(orderElement('shipmentEmpty').hidden,true);
-    assert.equal(orderElement('shipmentFooter').hidden,true);
-    assert(orderElement('shipmentBody').innerHTML.includes('shipmentScanBtn'));
-    order.run("shipmentItems=[{code:'1',name:'Обране',qty:1.25,price:2,maxQty:3}]");
-    order.updateShipmentSummary();
+    order.read('javascript/features/shipmentDraft.js');
+    order.restoreShipmentDraft = () => order.run("shipmentItems=[{code:'1',name:'Обране',qty:1.25,price:2,maxQty:3}]");
+    order.saveShipmentDraft = () => { savedQuantity = order.run('shipmentItems[0]?.qty'); };
+    order.openShipmentPage();
+    assert.equal(selectedPage, 'shipmentPage');
+    assert.equal(orderElement('shipmentStart').hidden,true);
     assert.equal(orderElement('shipmentFooter').hidden,false);
-    const oldOrderSearch = order.runShipmentSearch('старый');
-    const scannedOrderSearch = order.searchShipmentByBarcode('4820000001234');
-    assert.equal(orderRequests[0].signal.aborted,true);
-    assert.equal(orderRequests[1].endpoint,'customer-order');
-    assert.equal(orderRequests[1].barcode,true);
-    orderRequests[1].resolve({items:[{Code:'2',Name:'Знайдено',price:3,quantity:4}]});
-    await scannedOrderSearch;
-    orderRequests[0].resolve({items:[{Code:'3',Name:'Старий',price:5,quantity:6}]});
-    await oldOrderSearch;
-    assert.equal(quantityOpened,true);
-    assert.equal(order.run("shipmentItems.find(item=>item.code==='1').qty"),1.25);
-    assert.equal(order.run("shipmentItems.some(item=>item.code==='3')"),false);
-    console.log('PASS: syntax, pagination, stale responses, logout, scanner lifecycle, modal keys, offline assets, instant order opening, scoped barcode lookup, selected positions');
+    assert(orderElement('shipmentGrid').innerHTML.includes('Обране'));
+    assert.equal(savedQuantity,1.25);
+    order.run('shipmentItems=[]');
+    order.refreshShipmentRows();
+    assert.equal(orderElement('shipmentStart').hidden,false);
+    assert.equal(orderElement('shipmentFooter').hidden,true);
+    console.log('PASS: syntax, pagination, stale responses, logout, scanner lifecycle, modal keys, offline assets, order page, restored positions, empty order');
 })().catch(error=>{console.error(error);process.exitCode=1;});

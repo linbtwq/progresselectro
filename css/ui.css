@@ -1,5 +1,5 @@
 /* шапка и общий язык небольших элементов */
-.top-bar { position: fixed; top: 0; inset-inline: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: max(16px, env(safe-area-inset-top)) 16px 12px; z-index: 100; background: var(--bg); }
+.top-bar { position: fixed; top: 0; inset-inline: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: max(12px, env(safe-area-inset-top)) max(16px, calc((100% - 1080px) / 2)) 12px; z-index: 100; background: var(--surface); border-bottom: 1px solid var(--border); }
 .app-brand { display: flex; align-items: center; gap: 9px; color: var(--text-heading); font-size: .9rem; font-weight: 700; line-height: 1.15; letter-spacing: -.2px; }
 .app-brand small { display: block; margin-top: 2px; color: var(--text-muted); font-size: .68rem; font-weight: 500; letter-spacing: .4px; }
 .brand-mark { display: grid; place-items: center; width: 34px; height: 38px; border-radius: 11px; background: var(--primary); color: white; }
@@ -13,9 +13,8 @@
 .logout-btn svg { width: 19px; height: 19px; }
 .settings-btn { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); }
 .settings-btn svg { width: 20px; height: 20px; }
-.connection-status { display: grid; place-items: center; min-width: 12px; min-height: 40px; cursor: pointer; }
-.connection-status .status-content { display: none; }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
+.connection-status { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 4px 9px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface-2); color: var(--text); font-size: .73rem; font-weight: 600; }
+.status-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: var(--text-muted); }
 .connection-status.online .status-dot { background: var(--success); }
 .connection-status.offline .status-dot, .connection-status.has-queue .status-dot { background: var(--warning); }
 .connection-status.syncing .status-dot { animation: statusPulse 1s ease infinite alternate; }
@@ -28,15 +27,10 @@
 .menu-value { color: var(--text-muted); font-size: .85rem; }
 /* карточки товаров разделяют название, цену и служебные подписи */
 .goods-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px; box-shadow: var(--shadow-card); animation: surfaceEnter .18s var(--ease) both; }
-.goods-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .goods-title { text-wrap: pretty; flex: 1; min-width: 0; color: var(--text-heading); font-size: 1rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
-.goods-price-block { max-width: 48%; overflow-wrap: anywhere; display: flex; flex-direction: column; text-align: right; flex-shrink: 0; gap: 4px; }
-.price-label { color: var(--text-muted); font-size: .75rem; }
 .price-val { color: var(--text-heading); font-size: 1.25rem; font-weight: 650; line-height: 1.2; letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
-.goods-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 8px; }
-.goods-code, .goods-barcode { color: var(--text); font-size: .78rem; overflow-wrap: anywhere; }
+.goods-code { color: var(--text); font-size: .78rem; overflow-wrap: anywhere; }
 .goods-code::before { content: 'код '; }
-.goods-barcode::before { content: 'штрихкод '; }
 .goods-stock { max-width: 100%; overflow-wrap: anywhere; padding: 4px 8px; border-radius: 7px; margin-left: auto; font-size: .75rem; font-weight: 500; }
 .goods-stock.ok { color: var(--success); background: var(--success-soft); }
 .goods-stock.zero { color: var(--text-muted); background: var(--surface-2); }
@@ -46,17 +40,18 @@
 .show-more-wrap { text-align: center; padding: 14px; }
 .show-more-progress, .search-note { color: var(--text-muted); font-size: .8rem; text-align: center; padding: 10px; }
 /* недавние запросы оформлены как спокойные вторичные действия */
-.recent-searches { width: 100%; margin-top: 22px; }
-.recent-heading { display: flex; align-items: center; justify-content: space-between; color: var(--text-muted); font-size: .8rem; margin-bottom: 8px; }
+.recent-searches { width: 100%; margin-top: 8px; padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
+.recent-searches:empty { display: none; }
+.recent-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--text-heading); }
+.recent-heading h2 { font-size: 1rem; }
 .recent-heading button { padding: 8px 0 8px 12px; min-height: 40px; border: 0; background: none; color: var(--text-muted); font-size: .75rem; }
-.recent-list { display: flex; flex-wrap: wrap; gap: 8px; max-height: 130px; overflow-y: auto; }
-.recent-list button { min-height: 42px; max-width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); color: var(--text); font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-list button { display: grid; grid-template-columns: 20px minmax(0, 1fr) 14px; align-items: center; gap: 10px; width: 100%; min-height: 46px; padding: 8px 0; border: 0; background: transparent; color: var(--text-heading); font-size: .875rem; text-align: left; }
+.recent-list button + button { border-top: 1px solid var(--border); }
+.recent-list button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-list button svg { width: 100%; color: var(--text-muted); }
+.recent-list button:hover { color: var(--accent-text, var(--primary-strong)); }
 /* плавающие действия используют ту же геометрию, что и остальные кнопки */
-.fab-scanner { position: fixed; right: 20px; bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px)); display: grid; place-items: center; width: 56px; height: 56px; border: 0; border-radius: 18px; background: var(--primary); color: white; box-shadow: var(--shadow-float); z-index: 850; transition: transform .15s; }
-.fab-scanner svg { width: 26px; height: 26px; }
-.fab-scanner:active { transform: scale(.95); }
-body.modal-open .fab-scanner { display: none; }
-.back-to-top { position: fixed; right: 25px; bottom: max(94px, calc(env(safe-area-inset-bottom) + 86px)); display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); box-shadow: var(--shadow-card); z-index: 840; visibility: hidden; opacity: 0; transform: translateY(6px); transition: opacity .16s, visibility .16s, transform .16s; }
+.back-to-top { position: fixed; right: max(20px, calc((100% - 820px) / 2)); bottom: calc(env(safe-area-inset-bottom) + 74px); display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); box-shadow: var(--shadow-card); z-index: 840; visibility: hidden; opacity: 0; transform: translateY(6px); transition: opacity .16s, visibility .16s, transform .16s; }
 .back-to-top.visible { visibility: visible; opacity: 1; transform: none; }
 .back-to-top svg { width: 22px; height: 22px; }
 .app-version { display: none; }
@@ -73,6 +68,7 @@ body.modal-open .fab-scanner { display: none; }
 .auth-logo svg { width: 26px; height: 26px; }
 .auth-box h2 { color: var(--text-heading); font-size: 1.5rem; font-weight: 700; letter-spacing: -.5px; margin-bottom: 8px; }
 .auth-box p { color: var(--text-muted); font-size: .875rem; line-height: 1.6; margin-bottom: 24px; }
+.pin-label { display: block; margin-bottom: 6px; font-size: .875rem; font-weight: 600; }
 .pin-input { width: 100%; min-height: 58px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface-2); color: var(--text-heading); padding: 14px; font-size: 1.4rem; text-align: center; letter-spacing: 12px; outline: 0; margin-bottom: 12px; }
 .pin-input:focus { border-color: var(--primary-border); box-shadow: 0 0 0 3px var(--primary-soft); }
 .auth-error { color: var(--danger); font-size: .8rem; padding-bottom: 12px; }
@@ -114,18 +110,9 @@ body.modal-open .fab-scanner { display: none; }
 .settings-btn:active, .modal-close:active, .logout-btn:active, .search-clear:active, .numeric-toggle:active, .dg-scan-btn:active, .selected-filter:active, .recent-list button:active, .qty-btn:active { background: var(--surface-3); transform: scale(.97); }
 
 /* число найденных товаров отделяет поиск от списка карточек */
-.results-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding: 4px 2px 2px; color:var(--text-muted); font-size:.8rem; flex-shrink:0; }
+.results-summary { display:flex; align-items:center; gap:5px; padding: 2px 2px 12px; color:var(--text-muted); font-size:.8rem; flex-shrink:0; }
 .results-summary b { color:var(--text); font-size:.8rem; font-weight:500; font-variant-numeric:tabular-nums; }
 .goods-stock.warning { color:var(--warning); background:var(--warning-soft); }
-/* закрытый штрихкод занимает одну строку с кодом, раскрытый получает всю ширину */
-.barcode-details { color:var(--text); }
-.barcode-details[open] { order: 1; flex-basis: 100%; border-top: 1px solid var(--separator); margin-top: 4px; }
-.barcode-details summary { display:flex; align-items:center; gap:8px; min-height:44px; width:fit-content; cursor:pointer; list-style:none; font-size:.78rem; }
-.barcode-details summary::-webkit-details-marker { display:none; }
-.barcode-details summary::after { content:'+'; font-size:1rem; }
-.barcode-details[open] summary::after { content:'−'; }
-.barcode-details .goods-barcode { display:block; padding:0 0 8px; color:var(--text-heading); font-variant-numeric:tabular-nums; }
-.goods-barcode::before { content:''; }
 
 /* спокойные акценты добавляют глубину стартовому экрану и состояниям ожидания */
 .welcome-screen { position: relative; }
@@ -133,10 +120,6 @@ body.modal-open .fab-scanner { display: none; }
 .auth-box { border-top: 3px solid var(--primary); }
 .empty-illustration { filter: drop-shadow(0 4px 8px rgba(24,29,38,.04)); }
 .goods-code { font-variant-numeric: tabular-nums; }
-.goods-price-block .price-val { overflow-wrap: anywhere; }
-.barcode-details summary::after { color: var(--text-muted); }
-.barcode-details[open] summary { color: var(--text-heading); }
-.barcode-details .goods-barcode { letter-spacing: .04em; }
 /* отметка связи остается различимой на любой поверхности */
 .status-dot { box-shadow: 0 0 0 3px var(--surface); }
 

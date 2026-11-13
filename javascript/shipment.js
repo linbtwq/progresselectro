@@ -1,310 +1,256 @@
 let _shipmentLoadSeq = 0;
-let _shipmentSearchTimer = null;
-let _shipmentSearchAbort = null;
+let _shipmentOrganizationSeq = 0;
 let shipmentSending = false;
 let shipmentRequestId = null;
 let shipmentItems = [];
-let shipmentMatches = new Set();
 let shipmentReviewPending = false;
 
-// отменяет текущий поиск при вводе нового запроса или закрытии окна
-function cancelShipmentSearch() {
-    clearTimeout(_shipmentSearchTimer);
-    _shipmentSearchAbort?.abort();
-    _shipmentSearchAbort = null;
-}
-
-// сохраняет выбранные позиции и закрывает подбор
-function closeShipmentModal(force = false) {
-    if (shipmentSending && force !== true) return;
-    cancelShipmentSearch();
-    saveShipmentDraft();
+function resetShipmentPage() {
+    ++_shipmentLoadSeq;
     closeQuantityKeyboard(false);
-    ++_shipmentLoadSeq;
-    document.getElementById('shipmentOverlay')?.classList.remove('active');
-    document.body.classList.remove('modal-open');
     shipmentItems = [];
-    shipmentMatches.clear();
     shipmentRequestId = null;
-    if (typeof getTopModal === 'function' && !getTopModal() && typeof restoreFocus === 'function') restoreFocus();
 }
 
-// открывает поиск без запроса списка товаров и показывает сохраненные позиции
-function openShipmentModal() {
-    const overlay = document.getElementById('shipmentOverlay');
-    if (!currentUser || shipmentSending || !overlay || overlay.classList.contains('active')) return;
-    ++_shipmentLoadSeq;
-    rememberFocus();
-    shipmentRequestId = newRequestId();
-    shipmentMatches.clear();
-    restoreShipmentDraft();
-    const close = overlay.querySelector('.modal-close');
-    if (close) close.onclick = () => closeShipmentModal();
-    document.body.classList.add('modal-open');
-    renderShipmentBody();
-    overlay.classList.add('active');
-}
-
-// подключает поиск, сканер и клавиатуру количества
-function renderShipmentBody() {
-    const searchIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 5 5" stroke-linecap="round"/></svg>';
-    document.getElementById('shipmentBody').innerHTML = [
-        '<div class="assort-top shipment-controls">',
-        '<button type="button" class="action-btn shipment-scan-action" id="shipmentScanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 8V4h4m10 0h4v4M3 16v4h4m10 0h4v-4M7 8v8m4-9v10m3-9v10"/></svg>Сканувати штрихкод</button>',
-        '<div class="shipment-search-field">' + searchIcon,
-        '<input type="search" class="assort-search" id="shipmentSearch" placeholder="Введіть назву або код" aria-label="Пошук товару" autocomplete="off"></div>',
-        '</div><p id="shipmentSearchStatus" class="shipment-search-status" role="status"></p>',
-        '<div class="shipment-state" id="shipmentEmpty" role="status" hidden><span class="shipment-state-icon">' + searchIcon + '</span><strong></strong><span class="shipment-state-detail"></span></div>',
-        '<h4 class="shipment-selected-heading" id="shipmentSelectedHeading" hidden>У замовленні</h4>',
-        '<div id="shipmentGrid" class="assort-grid"></div>'
-    ].join('');
-    const input = document.getElementById('shipmentSearch');
-    input.addEventListener('input', () => {
-        cancelShipmentSearch();
-        shipmentMatches.clear();
-        refreshShipmentRows();
-        const query = input.value.trim();
-        if (query) _shipmentSearchTimer = setTimeout(() => runShipmentSearch(query), 300);
-    });
-    input.addEventListener('keydown', event => {
-        if (event.key !== 'Enter') return;
-        event.preventDefault();
-        const query = input.value.trim();
-        if (query) runShipmentSearch(query);
-    });
-    document.getElementById('shipmentScanBtn').addEventListener('click', openBarcodeScanner);
+function initShipmentPage() {
     const grid = document.getElementById('shipmentGrid');
+    document.getElementById('shipmentAddBtn').addEventListener('click', () => {
+        if (!shipmentSending && !shipmentReviewPending) openCatalogPage(true);
+    });
     grid.addEventListener('click', event => {
-        const quantity = event.target.closest('.qty-input');
-        if (quantity) openShipmentQuantity(quantity);
+        if (shipmentSending || shipmentReviewPending) return;
+        const input = event.target.closest('.qty-input');
+        if (input) return openQuantityKeyboard(input);
         const button = event.target.closest('.qty-btn');
         if (!button) return;
         const row = button.closest('[data-shipment-row]');
-        const index = Number(row.dataset.idx);
-        const item = shipmentItems[index];
-        if (!item) return;
-        const next = Number((item.qty + Number(button.dataset.step)).toFixed(3));
-        item.qty = Math.min(item.maxQty, Math.max(0, next));
+        const item = shipmentItems[Number(row.dataset.idx)];
+        item.qty = Math.min(item.maxQty, Math.max(0, Number((item.qty + Number(button.dataset.step)).toFixed(3))));
         row.querySelector('.qty-input').value = item.qty;
-        updateShipmentRow(row, index);
-        updateShipmentSummary();
+        updateShipmentRow(row, Number(row.dataset.idx));
     });
     grid.addEventListener('keydown', event => {
-        if (!event.target.matches('.qty-input') || !['Enter', ' '].includes(event.key)) return;
+        if (shipmentSending || shipmentReviewPending || !event.target.matches('.qty-input') || !['Enter', ' '].includes(event.key)) return;
         event.preventDefault();
-        openShipmentQuantity(event.target);
+        openQuantityKeyboard(event.target);
     });
+}
+
+function openShipmentPage() {
+    if (!currentUser || shipmentSending || shipmentReviewPending) return;
+    shipmentRequestId = newRequestId();
+    restoreShipmentDraft();
     refreshShipmentRows();
+    selectWorkspacePage('shipmentPage');
+    loadShipmentOrganization();
+}
+
+async function loadShipmentOrganization() {
+    const label = document.getElementById('shipmentOrganization');
+    if (!label) return;
+    const user = currentUser;
+    const sequence = ++_shipmentOrganizationSeq;
+    label.textContent = 'Завантажуємо організацію з 1С…';
+    const selected = shipmentItems[0];
+    if (selected && shipmentItems.some(item => !sameShipmentSource(item.source, selected.source))) {
+        label.textContent = 'Кілька організацій або магазинів · окремий документ для кожного джерела';
+        return;
+    }
+    if (selected?.organization) {
+        label.textContent = [selected.organization, selected.store].filter(Boolean).join(' · ');
+        return;
+    }
+    if (!navigator.onLine) {
+        label.textContent = '';
+        return;
+    }
+    let organization, store;
+    try {
+        ({organization, store} = await remoteSearchGoods('', undefined, false, 'customer-order'));
+    } catch {
+        // Сервер може бути недоступним або ще не повертає організацію.
+    }
+    if (currentUser !== user || sequence !== _shipmentOrganizationSeq) return;
+    for (const item of shipmentItems) {
+        if (!item.source && !item.organization && organization) { item.organization = organization; item.store = store; }
+    }
+    if (shipmentItems.length && organization) refreshShipmentRows();
+    label.textContent = organization?.trim() ? 'Організація: ' + [organization, store].filter(Boolean).join(' · ') : 'Організацію не вдалося отримати з 1С';
+}
+
+// собираем позиции по источнику остатка, каждая группа станет отдельным документом
+function shipmentGroups() {
+    const groups = [];
+    for (const [index, position] of shipmentItems.entries()) {
+        if (position.qty <= 0) continue;
+        let group = groups.find(entry => sameShipmentSource(entry.source, position.source));
+        if (!group) {
+            group = {source: position.source, organization: position.organization, store: position.store, items: [], indexes: []};
+            groups.push(group);
+        } else if (!group.source && position.source) {
+            group.source = position.source;
+        }
+        group.indexes.push(index);
+        group.items.push({
+            code: position.code, name: position.name, price: position.price, qty: position.qty,
+            ...(position.source?.variant_id ? {variant_id: position.source.variant_id, variant: position.source.variant} : {})
+        });
+    }
+    return groups;
+}
+
+function shipmentGroupTitle(group) {
+    return [group.organization, group.store].filter(Boolean).join(' · ') || 'Організація та магазин за замовчуванням';
+}
+
+function shipmentTotal(items) {
+    return items.reduce((sum, item) => sum + Math.round(item.qty * item.price * 100), 0) / 100;
+}
+
+function refreshShipmentRows() {
+    const renderRow = (item, index) => `
+        <article class="order-item" data-shipment-row data-idx="${index}">
+            <div class="order-product-photo" aria-hidden="true">${goodsPhotoHtml(item.code)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="m12 2 9 5v10l-9 5-9-5V7l9-5Zm0 10 9-5m-9 5L3 7m9 5v10"/></svg></div>
+            <div class="order-product">
+                <strong>${escapeHtml(item.name)}</strong>
+                <span class="goods-code">${escapeHtml(item.code)}</span>
+                ${item.source?.variant ? `<small class="order-source">${escapeHtml(item.source.variant)}</small>` : ""}
+                <div class="order-line">
+                    <div class="qty" role="group" aria-label="Кількість">
+                        <button type="button" class="qty-btn" data-step="-1" aria-label="Зменшити кількість">−</button>
+                        <input type="text" class="qty-input" value="${item.qty}" readonly inputmode="none" aria-label="Кількість товару" aria-haspopup="dialog">
+                        <button type="button" class="qty-btn" data-step="1" aria-label="Збільшити кількість">+</button>
+                    </div>
+                    <b class="row-total">${money(item.qty * item.price)} ₴</b>
+                </div>
+            </div>
+        </article>`;
+    document.getElementById('shipmentGrid').innerHTML = shipmentGroups().map(group =>
+        `<section class="order-group"><header><strong>${escapeHtml(shipmentGroupTitle(group))}</strong><b data-group-total></b></header>
+        ${group.indexes.map(index => renderRow(shipmentItems[index], index)).join('')}</section>`
+    ).join('');
     updateShipmentSummary();
 }
 
-// сохраняет текущую строку при открытии клавиатуры во время поиска
-function openShipmentQuantity(input) {
-    cancelShipmentSearch();
-    document.getElementById('shipmentSearchStatus').hidden = true;
-    openQuantityKeyboard(input);
-}
-
-// обновляет сетку из выбранных позиций и совпадений последнего запроса
-function refreshShipmentRows(message = '', state = '') {
-    const grid = document.getElementById('shipmentGrid');
-    const status = document.getElementById('shipmentSearchStatus');
-    if (!grid || !status) return;
-    shipmentItems = shipmentItems.filter(item => item.qty > 0 || shipmentMatches.has(item.code));
-    grid.innerHTML = renderShipmentRows();
-    grid.querySelectorAll('[data-shipment-row]').forEach(row => updateShipmentRow(row, Number(row.dataset.idx)));
-    status.textContent = message;
-    status.hidden = !message;
-    updateShipmentEmptyState(state);
-}
-
-// показывает выбранные позиции или сообщение о результате поиска
-function updateShipmentEmptyState(state = '') {
-    const empty = document.getElementById('shipmentEmpty');
-    const heading = document.getElementById('shipmentSelectedHeading');
-    if (!empty || !heading) return;
-    const query = document.getElementById('shipmentSearch').value.trim();
-    const selected = shipmentItems.some(item => item.qty > 0);
-    heading.hidden = Boolean(query) || !selected;
-    const copy = {
-        missing: ['Нічого не знайдено', 'Перевірте назву чи код або спробуйте сканер'],
-        error: ['Не вдалося завантажити результати', 'Спробуйте повторити пошук']
-    };
-    const content = copy[state];
-    empty.hidden = !content;
-    if (!content) return;
-    empty.setAttribute('data-state', state);
-    empty.querySelector('strong').textContent = content[0];
-    empty.querySelector('.shipment-state-detail').textContent = content[1];
-}
-
-// ищет только по запросу, отменяя устаревший поиск при каждом новом вводе
-async function runShipmentSearch(query, scanned = false) {
-    cancelShipmentSearch();
-    const controller = new AbortController();
-    _shipmentSearchAbort = controller;
-    shipmentMatches.clear();
-    refreshShipmentRows('Шукаємо товари…');
-    try {
-        const barcode = scanned || /^\d{8,}$/.test(query);
-        let result = await remoteSearchGoods(query, controller.signal, barcode, 'customer-order');
-        if (barcode && !scanned && !result.items.length && !controller.signal.aborted) {
-            result = await remoteSearchGoods(query, controller.signal, false, 'customer-order');
-        }
-        if (controller.signal.aborted || _shipmentSearchAbort !== controller) return;
-        if (typeof quantityDraft !== 'undefined' && quantityDraft) {
-            document.getElementById('shipmentSearchStatus').hidden = true;
-            return;
-        }
-        let lastCode;
-        for (const row of result.items) {
-            const code = String(row.Code ?? '');
-            const name = String(row.Name ?? '');
-            const price = Number(row.price);
-            const maxQty = Number(row.quantity);
-            if (!code || !name || !Number.isFinite(price) || price <= 0 || !Number.isFinite(maxQty) || maxQty <= 0) continue;
-            shipmentMatches.add(code);
-            lastCode = code;
-            const item = shipmentItems.find(candidate => candidate.code === code);
-            if (item) Object.assign(item, {name, price, maxQty, qty: Math.min(item.qty, maxQty)});
-            else shipmentItems.push({code, name, price, maxQty, qty:0});
-        }
-        const message = shipmentMatches.size && result.truncated ? 'Уточніть пошук, щоб звузити результати' : '';
-        refreshShipmentRows(message, shipmentMatches.size ? '' : 'missing');
-        updateShipmentSummary();
-        if (scanned && shipmentMatches.size === 1) {
-            const index = shipmentItems.findIndex(item => item.code === lastCode);
-            const input = document.querySelector('#shipmentGrid [data-idx="' + index + '"] .qty-input');
-            if (input) openShipmentQuantity(input);
-        }
-    } catch (error) {
-        if (!controller.signal.aborted && _shipmentSearchAbort === controller) {
-            refreshShipmentRows('', 'error');
-            console.warn('[customer order search]', error);
-        }
+function updateShipmentRow(row, index) {
+    const item = shipmentItems[index];
+    if (!item.qty) {
+        shipmentItems.splice(index, 1);
+        refreshShipmentRows();
+        const grid = document.getElementById('shipmentGrid');
+        const rows = grid.querySelectorAll('[data-shipment-row]');
+        const next = rows[Math.min(index, rows.length - 1)];
+        (next?.querySelector('.qty-input') || document.getElementById('shipmentAddBtn')).focus();
+        return;
     }
+    row.querySelector('.row-total').textContent = `${money(item.qty * item.price)} ₴`;
+    updateShipmentSummary();
 }
 
-// передает код сканера в поиск по заказу
-function searchShipmentByBarcode(barcode) {
-    const query = String(barcode || '').replace(/\s+/g, '');
-    const input = document.getElementById('shipmentSearch');
-    if (!query || !input) return;
-    input.value = query;
-    return runShipmentSearch(query, true);
-}
-
-
-
-function renderShipmentRows() {
-    return shipmentItems.map((it, i) => {
-        return renderProductRow({
-            idx: i, code: it.code, name: it.name, price: it.price, showHeadPrice: false,
-            dataAttr: 'data-shipment-row', fieldsClass: 'shipment-row-fields',
-            col1: { label: 'На складі', value: fmt(it.maxQty), isStatic: true, isLarge: true },
-            col2: { label: 'Ціна', value: `${money(it.price)} ₴`, isStatic: true },
-            col3: { label: 'Кількість', isInput: true, inputValue: it.qty,
-                inputAttrs: 'readonly inputmode="none" aria-label="Кількість товару" aria-haspopup="dialog"' },
-            col4: { label: 'Сума', value: '0 ₴', isTotal: true }
-        });
-    }).join('')
-}
-
-function updateShipmentRow(row, idx) {
-    const it = shipmentItems[idx]
-    if (!it) return
-    const totalEl = row.querySelector('.assort-row-total')
-    if (totalEl) totalEl.textContent = `${money(it.qty * it.price)} ₴`
-    row.classList.toggle('picked', it.qty > 0)
-}
-
-// пересчитывает итог, счетчик выбранных позиций и сохраняет черновик
 function updateShipmentSummary() {
-    const summary = document.getElementById('shipmentSummary')
-    const btn = document.getElementById('shipmentSendBtn')
-    if (!summary || !btn) return
-
-    let count = 0, sum = 0
-    shipmentItems.forEach(it => { if (it.qty > 0) { count++; sum += it.qty * it.price; } })
-
-    // итог и кнопка появляются после выбора первой позиции
-    const footer = document.getElementById('shipmentFooter');
-    if (footer) footer.hidden = count === 0;
+    const count = shipmentItems.length;
+    const total = shipmentTotal(shipmentItems);
+    const groups = shipmentGroups();
+    document.getElementById('shipmentGrid').querySelectorAll('[data-group-total]').forEach((label, index) => {
+        label.textContent = money(shipmentTotal(groups[index].items)) + ' ₴';
+    });
+    const documents = document.getElementById('shipmentDocuments');
+    documents.textContent = count ? 'Документів у 1С: ' + groups.length : '';
+    documents.hidden = !count;
+    const countLabel = document.getElementById('shipmentCount');
+    const plural = new Intl.PluralRules('uk').select(count);
+    const unit = {one: 'позиція', few: 'позиції', many: 'позицій'};
+    countLabel.textContent = `${count} ${unit[plural] || 'позиції'}`;
+    countLabel.hidden = !count;
+    document.getElementById('shipmentStart').hidden = Boolean(count);
+    document.getElementById('shipmentGrid').hidden = !count;
+    document.getElementById('shipmentFooter').hidden = !count;
+    document.getElementById('shipmentSummary').innerHTML = `<span>Разом</span><b>${money(total)} ₴</b>`;
+    document.getElementById('shipmentSendBtn').disabled = !count || shipmentSending;
     saveShipmentDraft();
-    if (!document.getElementById('shipmentSearch')?.value?.trim()) updateShipmentEmptyState();
-
-    if (!count) {
-        summary.textContent = ''
-        btn.disabled = true
-        return
-    }
-    summary.innerHTML = `<span>${count} ${count === 1 ? "позиція" : "поз."}</span><b>${money(sum)} ₴</b>`
-    btn.disabled = shipmentSending
 }
 
-// сначала показывает снимок выбранных позиций и отправляет только после подтверждения
 async function submitShipment() {
     if (!currentUser || shipmentSending || shipmentReviewPending) return;
-    cancelShipmentSearch();
     closeQuantityKeyboard();
 
-    const items = [];
-    shipmentItems.forEach(it => {
-        if (it.qty > 0) items.push({ code: it.code, name: it.name, price: it.price, qty: it.qty });
-    });
-
+    const groups = shipmentGroups();
+    const items = groups.flatMap(group => group.items.map(item => ({
+        ...item, name: [item.name, item.variant, group.organization, group.store].filter(Boolean).join(' · ')
+    })));
     if (!items.length) return showToast('Додайте хоча б одну позицію', true);
-    if (!navigator.onLine) return showToast('Немає мережі! Додавання лише онлайн.', true);
+    if (!navigator.onLine) return showToast('Немає мережі. Чернетку збережено.', true);
 
     const reviewUser = currentUser;
     const reviewSeq = _shipmentLoadSeq;
-    const overlay = document.getElementById('shipmentOverlay');
-    const total = items.reduce((sum, item) => sum + item.qty * item.price, 0);
+    const overlay = document.getElementById('shipmentPage');
+    const total = shipmentTotal(items);
+    // блокируем экран заказа, пока открыто окно проверки
     shipmentReviewPending = true;
     overlay.inert = true;
     let confirmed = false;
     try {
         confirmed = await showConfirmDialog({title:'Перевірте замовлення',
-            message: 'Вибрано позицій: ' + items.length,
-            receiptItems: items, receiptTotal: total, okText:'Відправити в 1С', cancelText:'Редагувати'});
+            message: 'Документів у 1С: ' + groups.length + ' · Позицій: ' + items.length,
+            receiptGroups: groups.map(group => ({
+                title: shipmentGroupTitle(group),
+                items: group.items.map(item => ({...item, name: [item.name, item.variant].filter(Boolean).join(' · ')})),
+                total: shipmentTotal(group.items)
+            })),
+            receiptTotal: total, okText:'Відправити в 1С', cancelText:'Редагувати'});
     } finally { shipmentReviewPending = false; overlay.inert = false; }
     if (!confirmed && currentUser === reviewUser) document.getElementById('shipmentSendBtn')?.focus?.();
     if (!confirmed || currentUser !== reviewUser || _shipmentLoadSeq !== reviewSeq) return;
     if (!navigator.onLine) return showToast('Немає мережі. Чернетку збережено.', true);
 
+    const orderGroups = groups.map(({source, items}) => ({
+        items,
+        ...(source ? {source: {organization_id: source.organization_id, store_id: source.store_id}} : {})
+    }));
+    const batch = groups.length > 1 || items.some(item => item.variant_id);
     const payload = {
-        point_id: '0', 
-        technician_id: currentUser ? currentUser.id : '',
+        point_id: '0',
+        technician_id: reviewUser.id,
         request_id: shipmentRequestId || newRequestId(),
-        items
+        ...(batch ? {groups: orderGroups} : orderGroups[0])
     };
 
     const btn = document.getElementById('shipmentSendBtn');
-    const closeBtn = document.querySelector('#shipmentOverlay .modal-close');
 
     const sendingUser = currentUser;
     const draftKey = shipmentDraftKey();
     shipmentSending = true;
 
+    // убираем черновик после того, как 1с вернет номера всех документов
+    const validDocument = document => document?.ok === true && document.document_type === 'customer_order' && Boolean(document.doc_number);
     await submitDocument({
         endpoint: 'customer-order',
-        validateResponse: response => response?.ok === true && response.document_type === 'customer_order' && Boolean(response.doc_number),
-        payload, btn, closeBtn,
+        validateResponse: response => batch
+            ? response?.ok === true && Array.isArray(response.documents) && response.documents.length === groups.length && response.documents.every(validDocument)
+            : validDocument(response),
+        payload, btn,
         successText: '',
         errorPrefix: 'Не вдалося додати',
         onSuccess: (response, conductError) => {
-            saveInvoiceHistory(sendingUser, payload, response, conductError);
+            const documents = batch ? response.documents : [response];
+            documents.forEach((document, index) => saveInvoiceHistory(sendingUser, {
+                request_id: batch ? payload.request_id + ':' + index : payload.request_id,
+                items: groups[index].items
+            }, document, conductError));
             clearShipmentDraft(draftKey);
             if (currentUser !== sendingUser) return;
             shipmentSending = false;
             shipmentItems = [];
-            closeShipmentModal();
+            shipmentRequestId = newRequestId();
+            refreshShipmentRows();
+            loadShipmentOrganization();
             showConfirmDialog({title: conductError ? 'Замовлення створено з помилкою' : 'Замовлення створено',
                 message: conductError ? 'Перевірте замовлення в 1С перед повторною відправкою.' : 'Сервер підтвердив створення замовлення.',
-                documentResult: shipmentDocumentResult(response, items, conductError), okText: 'Зрозуміло', cancelText: 'Закрити'});
+                ...(batch ? {details: documents.map(document => [document.doc_number, document.organization, document.store].filter(Boolean).join(' · '))}
+                    : {documentResult: shipmentDocumentResult(response, items, conductError)}), okText: 'Зрозуміло', cancelText: 'Закрити'});
         }
     });
 
     shipmentSending = false;
-    if (shipmentItems.length) updateShipmentSummary();
+    if (currentUser === sendingUser) updateShipmentSummary();
 }

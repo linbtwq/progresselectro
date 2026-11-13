@@ -22,10 +22,15 @@ function resetAppState() {
     if (shipmentReviewPending) document.getElementById('confirmDialogCancel')?.click();
     document.getElementById('recentSearches')?.replaceChildren();
     cancelGoodsLoad();
+    catalogSavedAt = 0;
+    renderCatalogStatus('');
+    renderCatalogActivity('');
     cancelGoodsSearch();
     _goodsResults = [];
     _goodsShown = 0;
-    closeShipmentModal(true);
+    resetShipmentPage();
+    openCatalogPage();
+    updateMainOrderCount();
     document.getElementById('appWrapper')?.classList.remove('has-results');
     const clearButton = document.getElementById('searchClear');
     if (clearButton) clearButton.hidden = true;
