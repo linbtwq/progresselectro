@@ -18,6 +18,8 @@ const vm = require('node:vm');
     const item = (code, barcodes = []) => ({id: code, code, name: 'Кабель ' + code, barcodes, stock_locations: []});
     let interrupted = true;
     let rejectPage = false;
+    let secondPageRemoved = false;
+    const reused = [];
     const box = {classList:{add(){},remove(){}},dataset:{}};
     const ctx = vm.createContext({
         AbortController, setTimeout, clearTimeout, navigator, localDB,
@@ -26,13 +28,21 @@ const vm = require('node:vm');
         isLoading:false, renderStatus(){}, setConnectionStatus(){}, showToast(){},
         rememberRecentSearch(){}, goodsCardHtml: row => row.name, fmt:String, escapeHtml:String,
         async fetchFrom1C(url) {
-            const cursor = new URL(url).searchParams.get('cursor');
+            const params = new URL(url).searchParams;
+            const cursor = params.get('cursor');
             requests.push(cursor);
             if (cursor && rejectPage) return {ok:false,status:500};
             if (cursor && interrupted) throw new Error('disconnected');
-            return {ok:true,json:async()=> cursor
+            const page = cursor
                 ? {schema:1, items:[item('2',['12345678','87654321'])], next_cursor:''}
-                : {schema:1, items:[item('1')], next_cursor:'1'}};
+                : {schema:1, items:[item('1')], next_cursor:secondPageRemoved ? '' : '1'};
+            page.fingerprint = cursor ? 'page-two' : secondPageRemoved ? 'page-one-short' : 'page-one';
+            if (params.get('fingerprint') === page.fingerprint) {
+                delete page.items;
+                page.unchanged = true;
+                reused.push(cursor);
+            }
+            return {ok:true,json:async()=>page};
         }
     });
     for (const file of ['javascript/app/load.js','javascript/features/search.js']) {
@@ -51,6 +61,7 @@ const vm = require('node:vm');
     assert.equal(failedPage.kind, 'http');
     assert.equal(failedPage.status, 500);
     assert.equal(failedPage.cursor, '1');
+    assert.deepEqual(reused, ['']);
     assert.equal(data.get('catalog:v1:a:pending').cursor, '1');
     assert.equal(data.get('catalog:v1:a').items.length, 2);
     rejectPage = false;
@@ -63,5 +74,13 @@ const vm = require('node:vm');
     navigator.onLine = false;
     await ctx.runGoodsSearch('Кабель');
     assert.match(box.innerHTML, /Кабель 1.*Кабель 2/s);
+    navigator.onLine = true;
+    interrupted = false;
+    await ctx.loadGoodsData({manual:true,silent:true});
+    assert.ok(reused.includes('1'));
+    secondPageRemoved = true;
+    await ctx.loadGoodsData({manual:true,silent:true});
+    assert.deepEqual(Array.from(ctx.goodsData, product => product.code), ['1']);
+    assert.equal(data.get('catalog:v1:a').items.length, 1);
     console.log('PASS: catalog resume, complete snapshot, alternate barcode, offline search, failed refresh preserves data');
 })().catch(error => { console.error(error); process.exitCode = 1; });

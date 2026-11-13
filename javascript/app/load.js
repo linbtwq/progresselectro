@@ -12,6 +12,7 @@ function cancelGoodsLoad() {
 }
 
 let catalogSavedAt = 0;
+const CATALOG_REFRESH_INTERVAL = 60 * 60000;
 
 function renderCatalogStatus(text) {
     const status = document.getElementById('offlineCatalogStatus');
@@ -58,7 +59,7 @@ async function syncGoodsData(options) {
 async function downloadGoodsData({silent, manual}) {
     if (!currentUser) return;
     if (isLoading) return 'busy';
-    if (catalogSavedAt && !manual && Date.now() - catalogSavedAt < 5 * 60000) return;
+    if (catalogSavedAt && !manual && Date.now() - catalogSavedAt < CATALOG_REFRESH_INTERVAL) return;
     const user = currentUser;
     const seq = ++_goodsLoadSeq;
     const controller = new AbortController();
@@ -68,7 +69,7 @@ async function downloadGoodsData({silent, manual}) {
     let serverResponded = false;
     isLoading = true;
     try {
-        // сначала показываем сохраненный каталог, пока 1с готовит новые данные
+        // сначала показываем сохраненный каталог
         const stored = await localDB.load(key).catch(() => null);
         if (!active()) return;
         if (stored?.savedAt > catalogSavedAt && Array.isArray(stored.items)) {
@@ -87,7 +88,8 @@ async function downloadGoodsData({silent, manual}) {
             if (!catalogSavedAt) renderCatalogStatus('Повний каталог ще не збережено. Підключіться до мережі магазину');
             return 'offline';
         }
-        if (!manual && Date.now() - catalogSavedAt < 5 * 60000) return;
+        // старая версия сервиса отдает все товары, с ней обновляем полный каталог по кнопке
+        if (!manual && catalogSavedAt && (!stored?.pageInfo?.length || Date.now() - catalogSavedAt < CATALOG_REFRESH_INTERVAL)) return;
         // продолжаем незавершенную загрузку, если с ее начала прошло меньше суток
         const checkpoint = await localDB.load(key + ':pending').catch(() => null);
         if (!active()) return;
@@ -96,6 +98,8 @@ async function downloadGoodsData({silent, manual}) {
         let cursor = resume ? checkpoint.cursor : '';
         let pageCount = resume ? checkpoint.pageCount : 0;
         const pages = [];
+        const pageInfo = resume ? (checkpoint.pageInfo || []).slice() : [];
+        const savedPages = new Map((stored?.pageInfo || []).map(info => [info.cursor, info]));
         for (let index = 0; index < pageCount; index++) {
             const page = await localDB.load(key + ':page:' + index);
             if (!active()) return;
@@ -106,20 +110,25 @@ async function downloadGoodsData({silent, manual}) {
             pages.push(page);
         }
         const seen = new Set(pages.flatMap(page => page.map(item => item.id)));
-        const base = apiBase + '/goods?offline=1&u=' + encodeURIComponent(user.id);
+        const base = apiBase + '/goods?offline=1&fingerprints=1&u=' + encodeURIComponent(user.id);
+        let offset = pages.reduce((total, page) => total + page.length, 0);
         do {
             renderCatalogActivity('Оновлюємо каталог… · ' + fmt(seen.size) + ' товарів');
-            const response = await fetchCatalogPage(base + '&cursor=' + encodeURIComponent(cursor), controller.signal);
+            const previous = savedPages.get(cursor);
+            const fingerprint = previous ? '&fingerprint=' + encodeURIComponent(previous.fingerprint) : '';
+            const response = await fetchCatalogPage(base + '&cursor=' + encodeURIComponent(cursor) + fingerprint, controller.signal);
             if (!active()) return;
             serverResponded = true;
             if (!response.ok) return {kind:'http', status:response.status, cursor};
             const page = response.page;
             if (page?.schema !== 1) return 'catalog-schema';
-            if (!Array.isArray(page.items) || typeof page.next_cursor !== 'string' ||
-                (page.next_cursor && (!page.items.length || !/^\d+$/.test(page.next_cursor) || (cursor && Number(page.next_cursor) <= Number(cursor))))) {
+            const reuse = page.unchanged === true && previous && previous.fingerprint === page.fingerprint;
+            const rows = reuse ? stored.items.slice(previous.offset, previous.offset + previous.count) : page.items;
+            if (!Array.isArray(rows) || typeof page.next_cursor !== 'string' ||
+                (page.next_cursor && (!rows.length || !/^\d+$/.test(page.next_cursor) || (cursor && Number(page.next_cursor) <= Number(cursor))))) {
                 throw new Error('1С не повернула сторінку офлайн-каталогу');
             }
-            const items = page.items.map(raw => {
+            const items = reuse ? rows : rows.map(raw => {
                 if (!raw || typeof raw.id !== 'string' || typeof raw.code !== 'string' ||
                     typeof raw.name !== 'string' || !Array.isArray(raw.barcodes) || !Array.isArray(raw.stock_locations)) {
                     throw new Error('Пошкоджена позиція офлайн-каталогу');
@@ -134,24 +143,27 @@ async function downloadGoodsData({silent, manual}) {
                 seen.add(item.id);
             }
             pages.push(items);
+            if (typeof page.fingerprint === 'string' && page.fingerprint) {
+                pageInfo.push({cursor, fingerprint:page.fingerprint, offset, count:items.length});
+            }
+            offset += items.length;
             cursor = page.next_cursor;
             if (cursor) {
                 // сначала сохраняем порцию, потом курсор для следующей попытки
                 await localDB.save(key + ':page:' + pageCount++, items);
                 if (!active()) return;
-                await localDB.save(key + ':pending', {cursor, pageCount, startedAt});
+                await localDB.save(key + ':pending', {cursor, pageCount, startedAt, pageInfo});
             }
         } while (cursor && active());
         if (!active()) return;
         // заменяем рабочий каталог только после получения всех порций
-        const saved = {items: pages.flat(), savedAt: Date.now()};
+        const saved = {items: pages.flat(), savedAt: Date.now(), pageInfo};
         await localDB.commitCatalog(key, saved);
         if (!active()) return;
-        const first = !catalogSavedAt;
         applyCatalog(saved);
         lastLoadedAt = saved.savedAt;
         setConnectionStatus(true);
-        if (first) refreshInitialCatalogSearch();
+        refreshInitialCatalogSearch();
         return 'updated';
     } catch (error) {
         if (!active()) return;
@@ -202,7 +214,7 @@ function applyCatalog(saved) {
     catalogSavedAt = saved.savedAt;
     lastLoadedAt = saved.savedAt;
     _dataRevision++;
-    renderCatalogStatus('Каталог збережено · ' + new Date(saved.savedAt).toLocaleString('uk-UA', {dateStyle:'short', timeStyle:'short'}));
+    renderCatalogStatus('Каталог доступний офлайн · ' + new Date(saved.savedAt).toLocaleString('uk-UA', {dateStyle:'short', timeStyle:'short'}));
 }
 
 function refreshInitialCatalogSearch() {

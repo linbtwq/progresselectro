@@ -104,13 +104,13 @@ function scheduleStatusLoop() {
 
 // ============================================================
 // реакция на появление сети
-// сбрасываем счетчик попыток, шлем очередь, перезагружаем справочник
+// сбрасываем счетчик попыток и даем каталогу обновиться по расписанию
 // ============================================================
 
 function handleOnlineStatus() {
     retryAttempt = 0;
     syncOfflineMeters();
-    if (currentUser) loadGoodsData({ silent: true, manual: true });
+    if (currentUser) loadGoodsData({ silent: true });
 }
 let _settingsFocus = null;
 // подключает открытие панели и закрытие по фону или кнопке

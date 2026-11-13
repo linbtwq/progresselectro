@@ -20,8 +20,8 @@
 // ============================================================
 
 // адрес публикации 1с в локальной сети
-const _RAW_API_BASE_DEFAULT = 'http://192.168.1.23/BasePE/hs/progresselectrosite';
-
+// const _RAW_API_BASE_DEFAULT = 'http://192.168.1.23/BasePE/hs/progresselectrosite';
+const _RAW_API_BASE_DEFAULT = 'http://176.98.80.236:5580/BasePE/hs/progresselectrosite'
 // проверяет есть ли переопределение адреса в localstorage
 // удобно когда нужно переключиться на тестовый сервер без пересборки
 function resolveApiBase() {

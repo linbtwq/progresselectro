@@ -115,6 +115,7 @@ async function requestGoodsSearch(query, signal, byBarcode, endpoint, exact) {
             const items = Array.isArray(data) ? data : data.items;
             if (items.some(item => !item || typeof item !== 'object' || Array.isArray(item))) throw new Error('Некоректний товар у відповіді пошуку');
             return {items, truncated: data.truncated === true,
+                ...(Number.isFinite(data.price) ? {price: data.price} : {}),
                 ...(Number.isInteger(data.matched_count) ? {matchedCount: data.matched_count, unavailableReason: data.unavailable_reason, stockLocations: data.stock_locations} : {}),
                 ...(typeof data.organization === 'string' ? {organization: data.organization, store: typeof data.store === 'string' ? data.store : ''} : {})};
         })();
@@ -170,8 +171,11 @@ async function runGoodsSearch(query) {
     }
 
     if (typeof catalogSavedAt !== 'undefined' && catalogSavedAt) {
-        renderGoodsResults(localSearchGoods(query), query, false);
-        return;
+        const local = localSearchGoods(query);
+        if (local.length || !navigator.onLine) {
+            renderGoodsResults(local, query, false);
+            return;
+        }
     }
     if (!navigator.onLine) {
         if (seq === _searchSeq) renderCachedGoodsSearch(query, 'Немає мережі. Показано лише збережені товари; ціни та залишки можуть бути неактуальними.');
@@ -234,7 +238,7 @@ async function searchGoodsByBarcode(barcode) {
         return _goodsResults;
     }
 
-    if (!navigator.onLine || (typeof catalogSavedAt !== 'undefined' && catalogSavedAt)) {
+    if (!navigator.onLine) {
         if (typeof catalogSavedAt !== 'undefined' && catalogSavedAt) renderGoodsResults([], clean, false);
         else renderCachedGoodsSearch(clean, 'Повний каталог ще не збережено.');
         return;

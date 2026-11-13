@@ -147,29 +147,11 @@ async function openGoodsDetails(item, trigger, batch = false) {
     }, {once: true});
     document.body.append(dialog);
     dialog.showModal();
-    try {
-        const savedLocations = item.stockLocations;
-        let saved = Array.isArray(savedLocations);
-        let result;
-        if (saved) {
-            result = {
-                items: savedLocations.filter(row => row.is_default && !row.variant).map(row => ({...row, Code: item.code})),
-                stockLocations: savedLocations
-            };
-        }
-        // Старі копії каталогу містять назви відрізків, але не їхні ідентифікатори.
-        if (!saved || (navigator.onLine && savedLocations.some(row => row.variant && !row.variant_id))) {
-            try {
-                const current = await remoteSearchGoods(item.code, controller.signal, false, 'customer-order', true);
-                if (!saved || current.stockLocations?.some(row => row.variant_id)) {
-                    result = current;
-                    saved = false;
-                }
-            } catch (error) {
-                if (!saved) throw error;
-            }
-        }
-        if (!dialog.open || currentUser !== user) return;
+    const section = dialog.querySelector('.goods-stock-locations');
+    const note = document.createElement('p');
+    note.className = 'goods-stock-date';
+    status.after(note);
+    const render = (result, saved, autoChoose) => {
         const match = result.items.find(row => String(row.Code) === item.code && Number(row.quantity) > 0 && Number(row.price) > 0);
         const reasons = {
             stock: 'Немає доступного залишку для організації та магазину замовлення',
@@ -186,14 +168,12 @@ async function openGoodsDetails(item, trigger, batch = false) {
         available.sort((a, b) => Number(Boolean(b.is_default)) - Number(Boolean(a.is_default)));
         status.hidden = available.length > 0;
         status.textContent = reasons[result.unavailableReason] || 'Немає залишку, доступного для замовлення';
-        if (saved) {
+        if (saved && catalogSavedAt) {
             const timestamp = new Date(catalogSavedAt).toLocaleString('uk-UA', {dateStyle:'short', timeStyle:'short'});
-            const note = document.createElement('p');
             note.textContent = 'Збережені залишки · ' + timestamp;
-            note.className = 'goods-stock-date';
-            status.after(note);
-        }
-        const section = dialog.querySelector('.goods-stock-locations');
+        } else note.textContent = saved ? 'Збережені залишки' : '';
+        section.hidden = !available.length && !unavailable.length;
+        section.onclick = null;
         const sourceOf = row => row.organization_id && row.store_id ? row : null;
         const matchesPosition = (position, location) => position.code === item.code
             && sameShipmentSource(position.source, sourceOf(location))
@@ -251,16 +231,36 @@ async function openGoodsDetails(item, trigger, batch = false) {
                 (available.length ? '<section class="stock-group"><h4>Можна замовити</h4>' + renderStockGroups(available, true) + '</section>' : '') +
                 (unavailable.length ? '<section class="stock-group"><h4>Інші залишки в 1С</h4>' + renderStockGroups(unavailable, false) + '</section>' : '');
             section.hidden = false;
-            section.addEventListener('click', event => {
+            section.onclick = event => {
                 const button = event.target.closest('[data-stock-index]');
                 if (button) choose(available[Number(button.dataset.stockIndex)], button);
-            });
-            if (batch && available.length === 1) choose(available[0], section.querySelector('[data-stock-index]'));
+            };
+            if (autoChoose && batch && available.length === 1) choose(available[0], section.querySelector('[data-stock-index]'));
         }
-        if (match) price.textContent = money(Number(match.price)) + ' ₴';
+        const currentPrice = result.price ?? match?.price ?? available[0]?.price;
+        if (Number.isFinite(currentPrice)) price.textContent = money(currentPrice) + ' ₴';
+    };
 
+    // показываем кеш сразу и уточняем остатки только для открытого товара
+    const savedLocations = item.stockLocations;
+    const cached = Array.isArray(savedLocations) ? {
+        items: savedLocations.filter(row => row.is_default && !row.variant).map(row => ({...row, Code:item.code})),
+        stockLocations: savedLocations
+    } : null;
+    if (cached) render(cached, true, !navigator.onLine);
+    if (!navigator.onLine) {
+        if (!cached) status.textContent = 'Залишки ще не збережено на цьому пристрої';
+        return;
+    }
+    const canUpdate = () => dialog.open && currentUser === user &&
+        !dialog.contains(document.getElementById('quantityKeyboardOverlay'));
+    try {
+        const current = await remoteSearchGoods(item.code, controller.signal, false, 'customer-order', true);
+        if (canUpdate()) render(current, false, true);
     } catch {
-        if (dialog.open) status.textContent = 'Не вдалося перевірити наявність';
+        if (!canUpdate()) return;
+        if (cached && batch) render(cached, true, true);
+        else if (!cached) status.textContent = 'Не вдалося перевірити наявність';
     }
 }
 
